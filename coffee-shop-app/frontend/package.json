@@ -1,0 +1,27 @@
+{
+  "name": "pos-restoran",
+  "version": "1.0.0",
+  "description": "POS Restoran - Electron frontend",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-win": "electron-builder --win"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "electron": "^25.9.8",
+    "electron-builder": "^23.6.0"
+  },
+  "build": {
+    "appId": "com.restoran.pos",
+    "productName": "POS Restoran",
+    "directories": {
+      "output": "../build"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

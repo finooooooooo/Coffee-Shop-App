@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+*.exe
+*.log
+*.dmg
+*.iso
+coffee-shop-app/frontend/node_modules/
+coffee-shop-app/build/

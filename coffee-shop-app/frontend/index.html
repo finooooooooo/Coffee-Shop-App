@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POS Restoran</title>
+  <link rel="stylesheet" href="style.css" />
+ </head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Sistem POS Restoran</h1>
+      <div class="header-actions">
+        <button id="kitchen-btn">Buka Kitchen Display</button>
+        <button id="bar-btn">Buka Bar Display</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="left-panel">
+        <div class="menu-container">
+          <h2>Menu</h2>
+          <div id="menu-list" class="menu-grid"></div>
+        </div>
+      </div>
+
+      <div class="center-panel">
+        <div class="order-container">
+          <h2>Pesanan</h2>
+          <div class="customer-info">
+            <input type="text" id="customer-name" placeholder="Nama Pelanggan">
+            <input type="text" id="table-number" placeholder="Nomor Meja">
+          </div>
+          <div id="order-items" class="order-items"></div>
+          <div class="order-summary">
+            <div class="total">
+              <span>Total:</span>
+              <span id="total-amount">Rp 0</span>
+            </div>
+            <button id="checkout-btn" class="checkout-btn">Checkout</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Pembayaran -->
+      <div id="payment-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Pembayaran</h2>
+          <div class="payment-summary">
+            <div class="total-payment">
+              <span>Total Tagihan:</span>
+              <span id="modal-total">Rp 0</span>
+            </div>
+            <div class="payment-input">
+              <label for="cash-input">Uang Tunai:</label>
+              <input type="number" id="cash-input" placeholder="Masukkan jumlah uang" min="0">
+            </div>
+            <div class="change-amount">
+              <span>Kembalian:</span>
+              <span id="change-amount">Rp 0</span>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button id="confirm-payment-btn" class="confirm-btn">Konfirmasi Pembayaran</button>
+            <button id="cancel-payment-btn" class="cancel-btn">Batal</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="history-container">
+          <h2>History Pesanan</h2>
+          <div id="order-history" class="order-history"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
