@@ -1,8 +1,15 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:
+    psycopg2 = None
+    RealDictCursor = None
 
 class Database:
     def __init__(self):
+        if not psycopg2:
+            raise ImportError("psycopg2 is not installed. Please install it or use SQLite mode.")
+
         # Updated to match user's PostgreSQL settings
         self.conn = psycopg2.connect(
             host="localhost",
