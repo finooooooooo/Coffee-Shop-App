@@ -51,9 +51,19 @@ Open a **new** terminal window (keep the backend running).
    npm start
    ```
 
+## Login Credentials
+
+The default users created by `seed.py` are:
+
+*   **Admin**: `admin` / `password123`
+    *   Access: Inventory, POS, Reports
+*   **Cashier**: `cashier` / `password123`
+    *   Access: POS, Reports (History)
+
 ## How to Use
 
-1. **Open Shift**: When the app starts, click "Toggle Shift" in the sidebar and enter a starting cash amount (e.g., 0). You cannot sell items without an open shift.
-2. **POS**: Click items to add to cart. Click Checkout to process payment.
-3. **Inventory**: Go to the Inventory tab to view products. (Add/Edit features available via API, UI has basic "Add" demo).
-4. **Reports**: View sales stats and recent transactions.
+1. **Login**: Enter username and password.
+2. **Open Shift**: Click "Toggle Shift" in the sidebar to start selling.
+3. **POS**: Click items to add to cart. Click Checkout to process payment.
+4. **Inventory (Admin)**: Manage products.
+5. **Reports**: View sales stats and recent transactions.

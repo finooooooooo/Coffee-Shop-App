@@ -1,6 +1,6 @@
 from app import create_app
 from extensions import db
-from models import Category, Product
+from models import Category, Product, User
 
 app = create_app()
 
@@ -12,6 +12,11 @@ def seed():
         db.create_all()
 
         print("Seeding data...")
+
+        # Users
+        admin = User(username="admin", password="password123", role="admin")
+        cashier = User(username="cashier", password="password123", role="cashier")
+        db.session.add_all([admin, cashier])
 
         # Categories
         cat_coffee = Category(name="Coffee")
@@ -60,7 +65,7 @@ def seed():
         db.session.add_all(products)
         db.session.commit()
 
-        print("Seeding complete!")
+        print("Seeding complete! Users created: admin, cashier")
 
 if __name__ == '__main__':
     seed()

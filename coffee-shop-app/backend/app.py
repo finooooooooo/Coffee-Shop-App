@@ -5,6 +5,7 @@ from extensions import db
 from routes.inventory_routes import inventory_bp
 from routes.pos_routes import pos_bp
 from routes.report_routes import report_bp
+from routes.auth_routes import auth_bp
 
 def create_app():
     app = Flask(__name__)
@@ -18,6 +19,7 @@ def create_app():
         db.create_all()
 
     # Register Blueprints
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
     app.register_blueprint(pos_bp, url_prefix='/api/pos')
     app.register_blueprint(report_bp, url_prefix='/api/report')
