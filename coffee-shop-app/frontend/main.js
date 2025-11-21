@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+// Disable hardware acceleration to prevent crashes on some systems
+app.disableHardwareAcceleration();
+
 let mainWindow = null;
 let kitchenWindow = null;
 let barWindow = null;
@@ -12,10 +15,19 @@ function createMainWindow() {
         title: 'POS Restoran',
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            backgroundThrottling: false // Keep running in background
         }
     });
+
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+    // Open DevTools for debugging
+    // mainWindow.webContents.openDevTools();
+
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
 }
 
 function createKitchenWindow() {
@@ -29,6 +41,10 @@ function createKitchenWindow() {
         }
     });
     kitchenWindow.loadFile(path.join(__dirname, 'displays', 'kitchen.html'));
+
+    kitchenWindow.on('closed', () => {
+        kitchenWindow = null;
+    });
 }
 
 function createBarWindow() {
@@ -42,6 +58,10 @@ function createBarWindow() {
         }
     });
     barWindow.loadFile(path.join(__dirname, 'displays', 'bar.html'));
+
+    barWindow.on('closed', () => {
+        barWindow = null;
+    });
 }
 
 // Open all windows when app is ready
@@ -53,8 +73,6 @@ app.whenReady().then(() => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createMainWindow();
-            createKitchenWindow();
-            createBarWindow();
         }
     });
 });
@@ -78,10 +96,10 @@ ipcMain.on('new-order', (event, order) => {
     };
 
     // Send order to appropriate displays based on item types
-    if (kitchenWindow && orderStatuses[order.id].kitchen === 'pending') {
+    if (kitchenWindow && !kitchenWindow.isDestroyed() && orderStatuses[order.id].kitchen === 'pending') {
         kitchenWindow.webContents.send('update-orders', order);
     }
-    if (barWindow && orderStatuses[order.id].bar === 'pending') {
+    if (barWindow && !barWindow.isDestroyed() && orderStatuses[order.id].bar === 'pending') {
         barWindow.webContents.send('update-orders', order);
     }
 });
@@ -104,7 +122,7 @@ ipcMain.on('update-order-status', (event, orderUpdate) => {
 
     if (isCompleted) {
         // Send completion notification to main window for history
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('order-completed', orderStatus.order);
         }
 
@@ -115,7 +133,7 @@ ipcMain.on('update-order-status', (event, orderUpdate) => {
     // Broadcast status updates to all windows
     const windows = [mainWindow, kitchenWindow, barWindow];
     windows.forEach(window => {
-        if (window) {
+        if (window && !window.isDestroyed()) {
             window.webContents.send('order-status-update', orderUpdate);
         }
     });
