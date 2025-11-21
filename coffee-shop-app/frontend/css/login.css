@@ -1,0 +1,74 @@
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--primary-color);
+}
+
+.login-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 350px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.brand-logo {
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+.brand-logo h2 {
+    margin-top: 10px;
+}
+
+.form-group {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--secondary-color);
+    font-weight: bold;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-login:hover {
+    background-color: var(--secondary-color);
+}
+
+.login-help {
+    margin-top: 1rem;
+    color: #666;
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 1rem;
+    background-color: rgba(255,255,255,0.1);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-logout:hover {
+    background-color: rgba(255,255,255,0.2);
+}

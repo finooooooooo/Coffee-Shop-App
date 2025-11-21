@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coffee Shop POS</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/login.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -27,6 +28,10 @@
                 <li onclick="app.navigate('reports')">
                     <i class="fas fa-chart-line"></i>
                     <span>Reports</span>
+                </li>
+                <li onclick="app.navigate('history')">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
                 </li>
             </ul>
             <div class="user-profile">
@@ -53,9 +58,11 @@
 
     <!-- Scripts -->
     <script src="js/api.js"></script>
+    <script src="js/views/login.js"></script>
     <script src="js/views/pos.js"></script>
     <script src="js/views/inventory.js"></script>
     <script src="js/views/reports.js"></script>
+    <script src="js/views/history.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
