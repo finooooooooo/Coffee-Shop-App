@@ -128,6 +128,39 @@ body {
     padding: 1rem;
     overflow-y: auto;
     background-color: #EFEBE9;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Category Filter */
+.category-filter {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 1rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-category {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--secondary-color);
+    border-radius: 20px;
+    background: white;
+    color: var(--secondary-color);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-category:hover {
+    background: var(--accent-color);
+}
+
+.btn-category.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
 }
 
 .cart-area {
@@ -143,35 +176,74 @@ body {
 /* Product Grid */
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
 }
 
 .product-card {
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--card-shadow);
     cursor: pointer;
     transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .product-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+}
+
+.product-img-wrapper {
+    position: relative;
+    height: 120px;
+    overflow: hidden;
 }
 
 .product-img {
     width: 100%;
-    height: 100px;
+    height: 100%;
     object-fit: cover;
+}
+
+.category-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
 }
 
 .product-info {
     padding: 0.8rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.product-info h4 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
 }
 
 .product-price {
     color: var(--success-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.stock-info {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+.stock-info.low-stock {
+    color: var(--danger-color);
     font-weight: bold;
 }
 

@@ -15,26 +15,62 @@ def seed():
         print("Seeding data...")
 
         # Categories
-        cat_drinks = Category(name="Minuman")
-        cat_food = Category(name="Makanan")
-        cat_dessert = Category(name="Dessert")
-
-        db.session.add_all([cat_drinks, cat_food, cat_dessert])
+        cats = {
+            "Signature Coffee": Category(name="Signature Coffee"),
+            "Classic Coffee": Category(name="Classic Coffee"),
+            "Non-Coffee": Category(name="Non-Coffee"),
+            "Snacks": Category(name="Snacks"),
+            "Main Course": Category(name="Main Course")
+        }
+        
+        db.session.add_all(cats.values())
+        db.session.flush() # Get IDs
 
         # Products
         products = [
-            Product(name="Espresso", price=18000, stock=100, category=cat_drinks, image_url="https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&h=200&fit=crop"),
-            Product(name="Cappuccino", price=25000, stock=50, category=cat_drinks, image_url="https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop"),
-            Product(name="Iced Latte", price=28000, stock=60, category=cat_drinks, image_url="https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=300&h=200&fit=crop"),
-            Product(name="Croissant", price=22000, stock=30, category=cat_food, image_url="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&h=200&fit=crop"),
-            Product(name="Sandwich", price=35000, stock=20, category=cat_food, image_url="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=300&h=200&fit=crop"),
-            Product(name="Cheesecake", price=30000, stock=15, category=cat_dessert, image_url="https://images.unsplash.com/photo-1524351199678-c41d621572e1?w=300&h=200&fit=crop"),
+            # Signature
+            Product(name="Kopi Gula Aren", price=22000, stock=100, category=cats["Signature Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1541167760496-1628856ab772?w=300&h=200&fit=crop"),
+            Product(name="Caramel Macchiato", price=28000, stock=80, category=cats["Signature Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1485808191679-5f86510c7f5a?w=300&h=200&fit=crop"),
+            
+            # Classic
+            Product(name="Espresso", price=15000, stock=50, category=cats["Classic Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&h=200&fit=crop"),
+            Product(name="Americano", price=18000, stock=50, category=cats["Classic Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop"),
+            Product(name="Cappuccino", price=24000, stock=50, category=cats["Classic Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop"),
+            Product(name="Caffe Latte", price=24000, stock=50, category=cats["Classic Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=300&h=200&fit=crop"),
+
+            # Non-Coffee
+            Product(name="Matcha Latte", price=26000, stock=40, category=cats["Non-Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1515825838458-f2a94b20105a?w=300&h=200&fit=crop"),
+            Product(name="Chocolate", price=24000, stock=40, category=cats["Non-Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300&h=200&fit=crop"),
+            Product(name="Lemon Tea", price=18000, stock=50, category=cats["Non-Coffee"], 
+                    image_url="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=300&h=200&fit=crop"),
+
+            # Snacks
+            Product(name="French Fries", price=20000, stock=30, category=cats["Snacks"], 
+                    image_url="https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=300&h=200&fit=crop"),
+            Product(name="Onion Rings", price=22000, stock=20, category=cats["Snacks"], 
+                    image_url="https://images.unsplash.com/photo-1639024471283-03518883512d?w=300&h=200&fit=crop"),
+            Product(name="Croissant", price=22000, stock=15, category=cats["Snacks"], 
+                    image_url="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&h=200&fit=crop"),
+
+            # Main Course
+            Product(name="Nasi Goreng", price=30000, stock=20, category=cats["Main Course"], 
+                    image_url="https://images.unsplash.com/photo-1603133872878-684f5714398e?w=300&h=200&fit=crop"),
+            Product(name="Mie Goreng", price=28000, stock=20, category=cats["Main Course"], 
+                    image_url="https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=300&h=200&fit=crop"),
         ]
 
         db.session.add_all(products)
         db.session.commit()
 
-        print("Seeding complete!")
+        print(f"Seeded {len(products)} products.")
 
 if __name__ == '__main__':
     seed()
