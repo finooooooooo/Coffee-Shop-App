@@ -24,7 +24,7 @@ class POSView {
                     <div class="cart-total">
                         Total: Rp <span id="cart-total">0</span>
                     </div>
-                    <button class="btn-checkout" onclick="pos.checkout()">Checkout</button>
+                    <button class="btn-checkout" onclick="pos.openCheckoutModal()">Checkout</button>
                 </div>
             </div>
         `;
@@ -46,6 +46,7 @@ class POSView {
 
     updateShiftUI() {
         const statusDiv = document.getElementById('shift-status-display');
+        if (!statusDiv) return;
         const indicator = statusDiv.querySelector('.indicator');
         const text = statusDiv.querySelector('span');
 
@@ -143,28 +144,78 @@ class POSView {
         this.updateCart();
     }
 
-    checkout() {
+    openCheckoutModal() {
         if (this.cart.length === 0) return;
-
         const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const payment = prompt(`Total: Rp ${total.toLocaleString()}\nEnter Payment Amount:`);
 
-        if (payment && parseFloat(payment) >= total) {
-            const orderData = {
-                total_amount: total,
-                payment_received: parseFloat(payment),
-                change_given: parseFloat(payment) - total,
-                items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
-            };
+        const modalContainer = document.getElementById('modal-container');
+        const overlay = document.getElementById('modal-overlay');
 
-            api.post('/pos/orders', orderData).then(() => {
-                alert(`Success! Change: Rp ${(parseFloat(payment) - total).toLocaleString()}`);
-                this.cart = [];
-                this.updateCart();
-                this.loadProducts(); // Refresh stock
-            });
+        modalContainer.innerHTML = `
+            <h3>Checkout</h3>
+            <div class="checkout-summary" style="margin: 1rem 0; font-size: 1.2rem;">
+                Total Amount: <b>Rp ${total.toLocaleString()}</b>
+            </div>
+            <div class="form-group">
+                <label>Payment Amount (Rp)</label>
+                <input type="number" id="payment-input" oninput="pos.calculateChange(${total})" placeholder="Enter amount">
+            </div>
+            <div id="change-display" style="margin-bottom: 1rem; font-weight: bold;">
+                Change: -
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button id="btn-confirm-pay" class="btn-checkout" disabled onclick="pos.confirmPayment(${total})">Confirm Payment</button>
+                <button class="btn-shift" onclick="pos.closeModal()">Cancel</button>
+            </div>
+        `;
+        overlay.classList.remove('hidden');
+        document.getElementById('payment-input').focus();
+    }
+
+    calculateChange(total) {
+        const input = document.getElementById('payment-input').value;
+        const amount = parseFloat(input);
+        const display = document.getElementById('change-display');
+        const btn = document.getElementById('btn-confirm-pay');
+
+        if (!isNaN(amount)) {
+            if (amount >= total) {
+                const change = amount - total;
+                display.innerHTML = `Change: <span style="color:var(--success-color)">Rp ${change.toLocaleString()}</span>`;
+                btn.disabled = false;
+            } else {
+                display.innerHTML = `Insufficient: <span style="color:var(--danger-color)">Rp ${(total - amount).toLocaleString()} more needed</span>`;
+                btn.disabled = true;
+            }
         } else {
-            alert("Insufficient payment or cancelled.");
+            display.textContent = "Change: -";
+            btn.disabled = true;
+        }
+    }
+
+    closeModal() {
+        document.getElementById('modal-overlay').classList.add('hidden');
+    }
+
+    async confirmPayment(total) {
+        const payment = parseFloat(document.getElementById('payment-input').value);
+        const orderData = {
+            total_amount: total, // Server will recalculate anyway
+            payment_received: payment,
+            items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
+        };
+
+        try {
+            const res = await api.post('/pos/orders', orderData);
+            // Success
+            this.closeModal();
+            alert(`Payment Successful!\nChange: Rp ${(payment - res.total_amount).toLocaleString()}`);
+            this.cart = [];
+            this.updateCart();
+            this.loadProducts(); // Refresh stock
+        } catch (err) {
+            alert("Payment failed or server error.");
+            console.error(err);
         }
     }
 }
