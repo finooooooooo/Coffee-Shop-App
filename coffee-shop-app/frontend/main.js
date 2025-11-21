@@ -9,9 +9,15 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
-        // rest of the code
+        title: 'POS Restoran',
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
     });
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
+
 function createKitchenWindow() {
     kitchenWindow = new BrowserWindow({
         width: 800,
@@ -132,5 +138,3 @@ ipcMain.on('open-bar-display', () => {
         barWindow.focus();
     }
 });
-
-// Cleaned up: removed legacy/duplicate handlers and undefined createWindow references.

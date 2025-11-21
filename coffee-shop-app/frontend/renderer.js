@@ -8,6 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutBtn = document.getElementById('checkout-btn');
     const orderHistory = document.getElementById('order-history');
 
+    // Modal elements
+    const paymentModal = document.getElementById('payment-modal');
+    const closeModal = document.querySelector('.close');
+    const cashInput = document.getElementById('cash-input');
+    const modalTotal = document.getElementById('modal-total');
+    const changeAmount = document.getElementById('change-amount');
+    const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+    const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
+
     let currentOrder = [];
     let menuItems = [];
     let completedOrders = [];
@@ -20,34 +29,46 @@ document.addEventListener('DOMContentLoaded', () => {
             displayMenu(menuItems);
         } catch (error) {
             console.error('Error fetching menu:', error);
-            // Add some sample items if backend is not available
-            menuItems = [
-                { id_menu: 1, nama_menu: 'Nasi Goreng', harga: 25000, kategori: 'Makanan', gambar: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300&h=200&fit=crop' },
-                { id_menu: 2, nama_menu: 'Mie Goreng', harga: 23000, kategori: 'Makanan', gambar: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=300&h=200&fit=crop' },
-                { id_menu: 3, nama_menu: 'Es Teh', harga: 5000, kategori: 'Minuman', gambar: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&h=200&fit=crop' },
-                { id_menu: 4, nama_menu: 'Es Jeruk', harga: 6000, kategori: 'Minuman', gambar: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=300&h=200&fit=crop' }
-            ];
-            displayMenu(menuItems);
+            menuList.innerHTML = '<p>Gagal memuat menu. Pastikan backend berjalan.</p>';
         }
     }
 
     // Display menu items
     function displayMenu(items) {
-        menuList.innerHTML = items.map(item => `
-            <div class="menu-item" data-id="${item.id_menu}">
+        menuList.innerHTML = ''; // Clear existing
+
+        items.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'menu-item';
+            itemEl.innerHTML = `
                 <img src="${item.gambar || 'https://via.placeholder.com/200x150?text=No+Image'}" alt="${item.nama_menu}" class="menu-image">
-                <h3>${item.nama_menu}</h3>
-                <p class="price">Rp ${parseFloat(item.harga).toLocaleString()}</p>
-                <p class="category">${item.kategori}</p>
-                <button onclick="addToOrder(${item.id_menu})">+ Tambah</button>
-            </div>
-        `).join('');
+                <div class="menu-details">
+                    <h3>${item.nama_menu}</h3>
+                    <p class="category">${item.kategori}</p>
+                    <p class="price">Rp ${parseFloat(item.harga).toLocaleString()}</p>
+                    <button class="add-btn" data-id="${item.id_menu}">+ Tambah</button>
+                </div>
+            `;
+            menuList.appendChild(itemEl);
+        });
+
+        // Add event listeners to buttons using delegation or direct attachment
+        // Here direct attachment is fine since we rebuilt the list
+        document.querySelectorAll('.add-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.target.getAttribute('data-id'));
+                addToOrder(id);
+            });
+        });
     }
 
     // Add item to order
-    window.addToOrder = (itemId) => {
+    function addToOrder(itemId) {
         const item = menuItems.find(m => m.id_menu === itemId);
-        if (!item) return;
+        if (!item) {
+            console.error('Item not found:', itemId);
+            return;
+        }
 
         const existingItem = currentOrder.find(o => o.id === itemId);
         if (existingItem) {
@@ -62,29 +83,41 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         updateOrderDisplay();
-    };
+    }
 
     // Update order display
     function updateOrderDisplay() {
         orderList.innerHTML = currentOrder.map(item => `
             <div class="order-item">
-                <span>${item.nama_menu}</span>
-                <span>x${item.quantity}</span>
-                <span>Rp ${(item.harga * item.quantity).toLocaleString()}</span>
-                <div class="quantity-controls">
-                    <button onclick="updateQuantity(${item.id}, -1)">-</button>
+                <div class="item-info">
+                    <span class="item-name">${item.nama_menu}</span>
+                    <span class="item-price">@ Rp ${item.harga.toLocaleString()}</span>
+                </div>
+                <div class="item-controls">
+                    <button class="qty-btn minus" data-id="${item.id}">-</button>
                     <span>${item.quantity}</span>
-                    <button onclick="updateQuantity(${item.id}, 1)">+</button>
+                    <button class="qty-btn plus" data-id="${item.id}">+</button>
+                </div>
+                <div style="margin-left: 10px; font-weight: bold;">
+                    Rp ${(item.harga * item.quantity).toLocaleString()}
                 </div>
             </div>
         `).join('');
 
         const total = currentOrder.reduce((sum, item) => sum + (item.harga * item.quantity), 0);
         totalDisplay.textContent = `Rp ${total.toLocaleString()}`;
+
+        // Re-attach listeners for quantity buttons
+        document.querySelectorAll('.qty-btn.minus').forEach(btn => {
+            btn.addEventListener('click', (e) => updateQuantity(parseInt(e.target.dataset.id), -1));
+        });
+        document.querySelectorAll('.qty-btn.plus').forEach(btn => {
+            btn.addEventListener('click', (e) => updateQuantity(parseInt(e.target.dataset.id), 1));
+        });
     }
 
     // Update item quantity
-    window.updateQuantity = (itemId, change) => {
+    function updateQuantity(itemId, change) {
         const item = currentOrder.find(o => o.id === itemId);
         if (!item) return;
 
@@ -93,16 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentOrder = currentOrder.filter(o => o.id !== itemId);
         }
         updateOrderDisplay();
-    };
-
-    // Modal elements
-    const paymentModal = document.getElementById('payment-modal');
-    const closeModal = document.querySelector('.close');
-    const cashInput = document.getElementById('cash-input');
-    const modalTotal = document.getElementById('modal-total');
-    const changeAmount = document.getElementById('change-amount');
-    const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
-    const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
+    }
 
     // Handle checkout
     checkoutBtn.addEventListener('click', () => {
@@ -125,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         changeAmount.textContent = 'Rp 0';
         cashInput.value = '';
         paymentModal.style.display = 'block';
+        cashInput.focus();
     });
 
     // Close modal
@@ -136,13 +161,15 @@ document.addEventListener('DOMContentLoaded', () => {
         paymentModal.style.display = 'none';
     });
 
-    // Calculate change when cash input changes
+    // Calculate change
     cashInput.addEventListener('input', () => {
         const total = currentOrder.reduce((sum, item) => sum + (item.harga * item.quantity), 0);
         const cash = parseFloat(cashInput.value) || 0;
         const change = cash - total;
         changeAmount.textContent = `Rp ${change.toLocaleString()}`;
         changeAmount.style.color = change < 0 ? 'red' : 'green';
+
+        confirmPaymentBtn.disabled = change < 0;
     });
 
     // Confirm payment
@@ -191,14 +218,14 @@ document.addEventListener('DOMContentLoaded', () => {
             change: order.change
         };
 
-        // Send immediately to displays (optimistic) so Kitchen/Bar see it right away
+        // Send to displays via Electron IPC
         try {
             ipcRenderer.send('new-order', orderToSend);
         } catch (ipcErr) {
             console.error('IPC send error:', ipcErr);
         }
 
-        // Then try to persist to backend; failures won't block display updates
+        // Save to Backend
         try {
             const response = await fetch('http://localhost:5000/api/transaksi', {
                 method: 'POST',
@@ -206,148 +233,105 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    id_pelanggan: 1,
+                    id_pelanggan: 1, // Default ID for now
                     total_bayar: order.total,
                     metode_pembayaran: 'Cash',
-                    items: order.items.map(i => ({ id_menu: i.id, jumlah: i.quantity, subtotal: i.harga * i.quantity }))
+                    items: order.items.map(i => ({
+                        id_menu: i.id,
+                        jumlah: i.quantity,
+                        subtotal: i.harga * i.quantity
+                    }))
                 })
             });
 
             if (response.ok) {
-                // Replace optimistic id with backend id if provided
                 const resData = await response.json();
-                // Optionally, notify displays about real id
                 if (resData.id_transaksi) {
                     ipcRenderer.send('update-order-status', { orderId: orderToSend.id, newId: resData.id_transaksi });
                 }
 
-                // Print receipt
                 printReceipt(orderToSend);
+
+                // Add to history
+                completedOrders.unshift(orderToSend);
+                displayOrderHistory();
 
                 alert(`Pembayaran berhasil! Kembalian: Rp ${(cash - total).toLocaleString()}`);
                 paymentModal.style.display = 'none';
                 currentOrder = [];
+                document.getElementById('customer-name').value = '';
+                document.getElementById('table-number').value = '';
                 updateOrderDisplay();
             } else {
-                console.warn('Backend returned non-OK status for order persistence');
-                alert('Pesanan tampil di display tetapi gagal disimpan ke server.');
+                alert('Gagal menyimpan pesanan ke server.');
             }
         } catch (error) {
-            console.error('Error submitting order to backend:', error);
-            alert('Pesanan tampil di display tetapi gagal disimpan ke server.');
+            console.error('Error submitting order:', error);
+            alert('Error network/server saat menyimpan pesanan.');
         }
     });
 
     function printReceipt(order) {
-        const receiptWindow = window.open('', '_blank', 'width=300,height=400');
+        // ... (Same as before, maybe improved style)
+        const receiptWindow = window.open('', '_blank', 'width=300,height=500');
         const receiptHTML = `
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Struk Pembayaran</title>
+                <title>Receipt</title>
                 <style>
-                    body { font-family: monospace; font-size: 12px; margin: 0; padding: 10px; }
-                    .header { text-align: center; margin-bottom: 10px; }
-                    .item { display: flex; justify-content: space-between; margin: 5px 0; }
-                    .total { border-top: 1px solid #000; padding-top: 5px; font-weight: bold; }
-                    .footer { text-align: center; margin-top: 10px; font-size: 10px; }
+                    body { font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; }
+                    .center { text-align: center; }
+                    .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                    .item { display: flex; justify-content: space-between; }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h2>POS Restoran</h2>
-                    <p>Struk Pembayaran</p>
+                <div class="center">
+                    <h3>COFFEE SHOP</h3>
+                    <p>Jl. Kopi No. 123</p>
                 </div>
-                <div class="details">
-                    <p>Pelanggan: ${order.customer}</p>
-                    <p>Meja: ${order.table}</p>
-                    <p>Tanggal: ${new Date(order.timestamp).toLocaleString()}</p>
-                </div>
-                <div class="items">
-                    ${order.items.map(item => `
-                        <div class="item">
-                            <span>${item.nama_menu} x${item.jumlah}</span>
-                            <span>Rp ${(item.harga * item.jumlah).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="total">
+                <div class="divider"></div>
+                <p>Date: ${new Date(order.timestamp).toLocaleString()}</p>
+                <p>Table: ${order.table} | Cust: ${order.customer}</p>
+                <div class="divider"></div>
+                ${order.items.map(item => `
                     <div class="item">
-                        <span>Total</span>
-                        <span>Rp ${order.total.toLocaleString()}</span>
+                        <span>${item.nama_menu} x${item.jumlah}</span>
+                        <span>${(item.harga * item.jumlah).toLocaleString()}</span>
                     </div>
-                    <div class="item">
-                        <span>Bayar</span>
-                        <span>Rp ${order.payment.toLocaleString()}</span>
-                    </div>
-                    <div class="item">
-                        <span>Kembalian</span>
-                        <span>Rp ${order.change.toLocaleString()}</span>
-                    </div>
-                </div>
-                <div class="footer">
-                    <p>Terima Kasih Atas Kunjungannya</p>
-                    <p>POS Restoran - ${new Date().getFullYear()}</p>
-                </div>
+                `).join('')}
+                <div class="divider"></div>
+                <div class="item"><strong>TOTAL</strong> <strong>${order.total.toLocaleString()}</strong></div>
+                <div class="item">CASH <span>${order.payment.toLocaleString()}</span></div>
+                <div class="item">CHANGE <span>${order.change.toLocaleString()}</span></div>
+                <div class="divider"></div>
+                <div class="center">Thank You!</div>
             </body>
             </html>
         `;
-
         receiptWindow.document.write(receiptHTML);
         receiptWindow.document.close();
-
-        // Auto print after content loads
-        receiptWindow.onload = () => {
-            receiptWindow.print();
-            receiptWindow.close();
-        };
+        // receiptWindow.print();
     }
 
-    // Display order history
     function displayOrderHistory() {
         orderHistory.innerHTML = completedOrders.map(order => `
             <div class="history-item completed">
-                <h4>Order #${order.id} - Meja ${order.table}</h4>
-                <div class="time">${new Date(order.timestamp).toLocaleString()}</div>
-                <div class="items">
-                    ${order.items.map(item => `
-                        <div class="item">
-                            <span>${item.nama_menu} x${item.jumlah}</span>
-                            <span>Rp ${(item.harga * item.jumlah).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                </div>
+                <h4>#${order.id.toString().slice(-4)} - ${order.customer} (Meja ${order.table})</h4>
+                <div class="time">${new Date(order.timestamp).toLocaleTimeString()}</div>
                 <div class="total">Total: Rp ${order.total.toLocaleString()}</div>
             </div>
         `).join('');
     }
 
-    // Listen for order completion updates
-    ipcRenderer.on('order-completed', (event, completedOrder) => {
-        completedOrders.unshift(completedOrder); // Add to beginning
-        if (completedOrders.length > 50) { // Keep only last 50 orders
-            completedOrders = completedOrders.slice(0, 50);
-        }
-        displayOrderHistory();
-    });
+    // Initial fetch
+    fetchMenu();
 
-    // Handle kitchen and bar display buttons
+    // Button handlers for opening other windows
     const kitchenBtn = document.getElementById('kitchen-btn');
     const barBtn = document.getElementById('bar-btn');
 
-    if (kitchenBtn) {
-        kitchenBtn.addEventListener('click', () => {
-            ipcRenderer.send('open-kitchen-display');
-        });
-    }
-
-    if (barBtn) {
-        barBtn.addEventListener('click', () => {
-            ipcRenderer.send('open-bar-display');
-        });
-    }
-
-    // Initialize
-    fetchMenu();
-    displayOrderHistory();
+    if (kitchenBtn) kitchenBtn.addEventListener('click', () => ipcRenderer.send('open-kitchen-display'));
+    if (barBtn) barBtn.addEventListener('click', () => ipcRenderer.send('open-bar-display'));
 });
