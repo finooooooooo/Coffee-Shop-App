@@ -7,3 +7,8 @@ build/
 *.iso
 coffee-shop-app/frontend/node_modules/
 coffee-shop-app/build/
+*.db
+__pycache__/
+*.pyc
+.env
+.DS_Store
