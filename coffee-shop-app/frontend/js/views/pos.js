@@ -2,7 +2,9 @@ class POSView {
     constructor() {
         this.cart = [];
         this.products = [];
+        this.categories = [];
         this.shiftOpen = false;
+        this.activeCategory = 'All';
     }
 
     async render(container) {
@@ -29,13 +31,10 @@ class POSView {
             </div>
         `;
         container.innerHTML = html;
-
-        // Make global for onclick access
         window.pos = this;
 
         await this.checkShiftStatus();
-        await this.loadProducts();
-        this.updateCart();
+        await this.loadData();
     }
 
     async checkShiftStatus() {
@@ -46,6 +45,8 @@ class POSView {
 
     updateShiftUI() {
         const statusDiv = document.getElementById('shift-status-display');
+        if (!statusDiv) return; // Safety check
+
         const indicator = statusDiv.querySelector('.indicator');
         const text = statusDiv.querySelector('span');
 
@@ -60,14 +61,12 @@ class POSView {
 
     async toggleShift() {
         if (this.shiftOpen) {
-            // Close Shift Logic (Simplified)
             const amount = prompt("Enter closing cash amount:", "0");
             if (amount !== null) {
                 await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
                 this.shiftOpen = false;
             }
         } else {
-            // Open Shift
             const amount = prompt("Enter starting cash amount:", "0");
             if (amount !== null) {
                 await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
@@ -77,14 +76,44 @@ class POSView {
         this.updateShiftUI();
     }
 
-    async loadProducts() {
-        this.products = await api.get('/inventory/products');
-        this.renderProducts(this.products);
+    async loadData() {
+        const [products, categories] = await Promise.all([
+            api.get('/inventory/products'),
+            api.get('/inventory/categories')
+        ]);
+        this.products = products;
+        this.categories = categories;
+
+        this.renderCategories();
+        this.renderProducts();
     }
 
-    renderProducts(products) {
+    renderCategories() {
+        const container = document.getElementById('category-list');
+        const allBtn = `<button class="btn-category ${this.activeCategory === 'All' ? 'active' : ''}" onclick="pos.filterCategory('All')">All</button>`;
+
+        const catBtns = this.categories.map(c => `
+            <button class="btn-category ${this.activeCategory === c.name ? 'active' : ''}" onclick="pos.filterCategory('${c.name}')">${c.name}</button>
+        `).join('');
+
+        container.innerHTML = allBtn + catBtns;
+    }
+
+    filterCategory(name) {
+        this.activeCategory = name;
+        this.renderCategories(); // Re-render to update active class
+        this.renderProducts();
+    }
+
+    renderProducts() {
         const grid = document.getElementById('product-grid');
-        grid.innerHTML = products.map(p => `
+
+        let filtered = this.products;
+        if (this.activeCategory !== 'All') {
+            filtered = this.products.filter(p => p.category === this.activeCategory);
+        }
+
+        grid.innerHTML = filtered.map(p => `
             <div class="product-card" onclick="pos.addToCart(${p.id})">
                 <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="product-img">
                 <div class="product-info">
@@ -147,6 +176,7 @@ class POSView {
         if (this.cart.length === 0) return;
 
         const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // Simple prompt for now, can be upgraded to modal
         const payment = prompt(`Total: Rp ${total.toLocaleString()}\nEnter Payment Amount:`);
 
         if (payment && parseFloat(payment) >= total) {
@@ -161,7 +191,7 @@ class POSView {
                 alert(`Success! Change: Rp ${(parseFloat(payment) - total).toLocaleString()}`);
                 this.cart = [];
                 this.updateCart();
-                this.loadProducts(); // Refresh stock
+                this.loadData(); // Refresh stock
             });
         } else {
             alert("Insufficient payment or cancelled.");

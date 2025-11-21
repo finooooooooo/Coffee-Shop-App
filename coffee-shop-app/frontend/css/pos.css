@@ -1,6 +1,6 @@
-/* ... (Existing CSS) ... */
+/* ... (Previous CSS) ... */
 
-/* --- Appended POS Styles --- */
+/* Category Filter */
 .category-filter {
     display: flex;
     gap: 10px;
@@ -17,7 +17,6 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
-    color: var(--text-color);
 }
 
 .btn-category.active, .btn-category:hover {
@@ -26,28 +25,23 @@
     border-color: var(--primary-color);
 }
 
+/* Enhanced Grid */
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Larger cards */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1.5rem;
 }
 
 .product-card {
     border-radius: 12px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
 }
 
 .product-img {
-    height: 140px; /* Larger image */
+    height: 120px;
 }
 
 .product-info h4 {
-    font-size: 1.1rem;
+    font-size: 1rem;
     margin-bottom: 5px;
     color: var(--primary-color);
 }
