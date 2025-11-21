@@ -1,93 +1,94 @@
-from database import Database
-from datetime import datetime, timedelta
+from datetime import datetime
+from extensions import db
 
-class Menu:
-    def __init__(self):
-        self.db = Database()
-    
-    def get_all_menu(self):
-        query = "SELECT ID_Menu as id_menu, Nama_Menu as nama_menu, Kategori as kategori, Harga as harga, Stok as stok, Gambar as gambar, Status_Aktif as status_aktif FROM Menu WHERE Status_Aktif = TRUE"
-        return self.db.execute_query(query)
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    products = db.relationship('Product', backref='category', lazy=True)
 
-    def get_menu_by_id(self, id_menu):
-        query = "SELECT ID_Menu as id_menu, Nama_Menu as nama_menu, Kategori as kategori, Harga as harga, Stok as stok, Gambar as gambar, Status_Aktif as status_aktif FROM Menu WHERE ID_Menu = %s"
-        return self.db.execute_query(query, (id_menu,))
-    
-    def update_stok(self, id_menu, jumlah):
-        query = "UPDATE Menu SET Stok = Stok - %s WHERE ID_Menu = %s"
-        self.db.execute_query(query, (jumlah, id_menu))
+    def to_dict(self):
+        return {'id': self.id, 'name': self.name}
 
-class Transaksi:
-    def __init__(self):
-        self.db = Database()
-    
-    def create_transaksi(self, id_pelanggan, total_bayar, metode_pembayaran):
-        query = """
-        INSERT INTO Transaksi (ID_Pelanggan, Total_Bayar, Metode_Pembayaran)
-        VALUES (%s, %s, %s) RETURNING ID_Transaksi
-        """
-        result = self.db.execute_query(query, (id_pelanggan, total_bayar, metode_pembayaran))
-        return result[0]['id_transaksi']
-    
-    def add_detail_transaksi(self, id_transaksi, id_menu, jumlah, subtotal):
-        query = """
-        INSERT INTO Detail_Transaksi (ID_Transaksi, ID_Menu, Jumlah, Subtotal)
-        VALUES (%s, %s, %s, %s)
-        """
-        self.db.execute_query(query, (id_transaksi, id_menu, jumlah, subtotal))
-    
-    def get_transaksi_by_date_range(self, start_date, end_date):
-        query = """
-        SELECT T.*, P.Nama_Pelanggan
-        FROM Transaksi T
-        LEFT JOIN Pelanggan P ON T.ID_Pelanggan = P.ID_Pelanggan
-        WHERE T.Tanggal_Transaksi BETWEEN %s AND %s
-        ORDER BY T.Tanggal_Transaksi DESC
-        """
-        return self.db.execute_query(query, (start_date, end_date))
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, default=0)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class Pesanan:
-    def __init__(self):
-        self.db = Database()
-    
-    def create_pesanan(self, id_transaksi, id_menu, jumlah, tujuan):
-        query = """
-        INSERT INTO Pesanan (ID_Transaksi, ID_Menu, Jumlah, Tujuan)
-        VALUES (%s, %s, %s, %s)
-        """
-        self.db.execute_query(query, (id_transaksi, id_menu, jumlah, tujuan))
-    
-    def get_pending_orders(self, tujuan):
-        query = """
-        SELECT P.*, M.Nama_Menu
-        FROM Pesanan P
-        JOIN Menu M ON P.ID_Menu = M.ID_Menu
-        WHERE P.Status_Pesanan = 'Menunggu' AND P.Tujuan = %s
-        ORDER BY P.Waktu_Pesanan
-        """
-        return self.db.execute_query(query, (tujuan,))
-    
-    def update_status_pesanan(self, id_pesanan, status):
-        query = "UPDATE Pesanan SET Status_Pesanan = %s WHERE ID_Pesanan = %s"
-        self.db.execute_query(query, (status, id_pesanan))
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'price': self.price,
+            'stock': self.stock,
+            'category': self.category.name if self.category else None,
+            'category_id': self.category_id,
+            'image_url': self.image_url,
+            'is_active': self.is_active
+        }
 
-class Laporan:
-    def __init__(self):
-        self.db = Database()
-    
-    def generate_harian(self, tanggal):
-        start_date = datetime.strptime(tanggal, "%Y-%m-%d")
-        end_date = start_date + timedelta(days=1)
-        
-        transaksi = Transaksi()
-        data_transaksi = transaksi.get_transaksi_by_date_range(start_date, end_date)
-        
-        total_transaksi = len(data_transaksi)
-        total_pendapatan = sum(t['total_bayar'] for t in data_transaksi)
-        
-        query = """
-        INSERT INTO Laporan (Tipe_Laporan, Tanggal_Laporan, Total_Transaksi, Total_Pendapatan)
-        VALUES (%s, %s, %s, %s) RETURNING ID_Laporan
-        """
-        result = self.db.execute_query(query, ('Harian', start_date.date(), total_transaksi, total_pendapatan))
-        return result[0]['id_laporan']
+class Shift(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    start_cash = db.Column(db.Float, default=0.0)
+    end_cash = db.Column(db.Float, nullable=True)
+    total_sales = db.Column(db.Float, default=0.0)
+    is_open = db.Column(db.Boolean, default=True)
+    orders = db.relationship('Order', backref='shift', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'start_cash': self.start_cash,
+            'end_cash': self.end_cash,
+            'total_sales': self.total_sales,
+            'is_open': self.is_open
+        }
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    shift_id = db.Column(db.Integer, db.ForeignKey('shift.id'), nullable=True)
+    total_amount = db.Column(db.Float, nullable=False)
+    payment_method = db.Column(db.String(20), default='Cash')
+    payment_received = db.Column(db.Float, default=0.0)
+    change_given = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    customer_name = db.Column(db.String(100), nullable=True)
+    table_number = db.Column(db.String(20), nullable=True)
+    items = db.relationship('OrderItem', backref='order', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'total_amount': self.total_amount,
+            'payment_method': self.payment_method,
+            'created_at': self.created_at.isoformat(),
+            'customer_name': self.customer_name,
+            'table_number': self.table_number,
+            'items': [item.to_dict() for item in self.items]
+        }
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    product_name = db.Column(db.String(100), nullable=False) # Snapshot of name
+    price_at_sale = db.Column(db.Float, nullable=False) # Snapshot of price
+    quantity = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Float, nullable=False)
+
+    def to_dict(self):
+        return {
+            'product_id': self.product_id,
+            'product_name': self.product_name,
+            'price': self.price_at_sale,
+            'quantity': self.quantity,
+            'subtotal': self.subtotal
+        }
