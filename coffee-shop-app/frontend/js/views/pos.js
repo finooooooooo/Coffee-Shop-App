@@ -12,6 +12,7 @@ class POSView {
     }
 
     async render(container) {
+        window.pos = this; // Make instance globally available for onclick handlers
         this.container = container;
         // Initial check and load
         await this.checkShiftStatus();
@@ -267,7 +268,7 @@ class POSView {
                         <span>Pajak (10%)</span>
                         <span>Rp ${tax.toLocaleString()}</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:1.5rem; font-weight:bold; color:var(--kiosk-primary); margin-bottom:1.5rem;">
+                    <div class="cart-total" style="display:flex; justify-content:space-between; font-size:1.5rem; font-weight:bold; color:var(--kiosk-primary); margin-bottom:1.5rem;">
                         <span>Total</span>
                         <span>Rp ${total.toLocaleString()}</span>
                     </div>
