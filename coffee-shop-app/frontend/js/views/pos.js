@@ -9,10 +9,11 @@ class POSView {
         this.currentView = 'lobby'; // lobby, menu, cart, success
         this.activeTab = 'all'; // all, makanan, minuman
         this.activeSubTab = 'all';
+
+        window.pos = this; // Make instance globally available immediately
     }
 
     async render(container) {
-        window.pos = this; // Make instance globally available for onclick handlers
         this.container = container;
         // Initial check and load
         await this.checkShiftStatus();
@@ -65,20 +66,33 @@ class POSView {
     }
 
     async toggleShift() {
-        if (this.shiftOpen) {
-            const amount = prompt("Enter closing cash amount:", "0");
-            if (amount !== null) {
-                await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
-                this.shiftOpen = false;
+        try {
+            if (this.shiftOpen) {
+                const amount = prompt("Enter closing cash amount:", "0");
+                if (amount !== null) {
+                    const res = await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
+                    if (res.error && res.error !== 'No active shift') {
+                        alert(res.error);
+                        return;
+                    }
+                    this.shiftOpen = false;
+                }
+            } else {
+                const amount = prompt("Enter starting cash amount:", "0");
+                if (amount !== null) {
+                    const res = await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
+                    if (res.error && res.error !== 'Shift already open') {
+                        alert(res.error);
+                        return;
+                    }
+                    this.shiftOpen = true;
+                }
             }
-        } else {
-            const amount = prompt("Enter starting cash amount:", "0");
-            if (amount !== null) {
-                await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
-                this.shiftOpen = true;
-            }
+            this.updateShiftUI();
+        } catch (e) {
+            console.error("Toggle Shift Error:", e);
+            alert("Failed to toggle shift. Check console for details.");
         }
-        this.updateShiftUI();
     }
 
     async loadData() {
