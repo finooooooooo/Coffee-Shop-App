@@ -132,20 +132,27 @@ class POSView {
             let subTabs = [];
 
             if (this.activeTab === 'makanan') {
-                // Filter for Food categories (Snacks, Main Course, Dessert)
-                const foodCats = ['Snacks', 'Main Course', 'Dessert'];
-                filteredProducts = this.products.filter(p => foodCats.includes(p.category));
-                subTabs = foodCats;
+                // Makanan: Berat (Main Course), Ringan (Snacks, Dessert)
+                subTabs = ['Berat', 'Ringan'];
+                if (this.activeSubTab === 'Berat') {
+                    filteredProducts = this.products.filter(p => ['Main Course'].includes(p.category));
+                } else if (this.activeSubTab === 'Ringan') {
+                    filteredProducts = this.products.filter(p => ['Snacks', 'Dessert'].includes(p.category));
+                } else {
+                    // Show all food
+                    filteredProducts = this.products.filter(p => ['Main Course', 'Snacks', 'Dessert'].includes(p.category));
+                }
             } else if (this.activeTab === 'minuman') {
-                // Filter for Drink categories
-                const drinkCats = ['Signature Coffee', 'Classic Coffee', 'Non-Coffee'];
-                filteredProducts = this.products.filter(p => drinkCats.includes(p.category));
-                subTabs = drinkCats;
-            }
-
-            // Sub-tab filter
-            if (this.activeSubTab !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.category === this.activeSubTab);
+                // Minuman: Panas (Classic Coffee), Dingin (Signature Coffee, Non-Coffee)
+                subTabs = ['Dingin', 'Panas'];
+                if (this.activeSubTab === 'Panas') {
+                    filteredProducts = this.products.filter(p => ['Classic Coffee'].includes(p.category));
+                } else if (this.activeSubTab === 'Dingin') {
+                    filteredProducts = this.products.filter(p => ['Signature Coffee', 'Non-Coffee'].includes(p.category));
+                } else {
+                    // Show all drinks
+                    filteredProducts = this.products.filter(p => ['Classic Coffee', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
+                }
             }
 
             const cartCount = this.cart.reduce((sum, item) => sum + item.quantity, 0);
