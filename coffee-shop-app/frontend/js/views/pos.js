@@ -4,48 +4,17 @@ class POSView {
         this.products = [];
         this.categories = [];
         this.shiftOpen = false;
-        this.activeCategory = 'All';
-    }
-
-    async render(container) {
-        const html = `
-            <div class="pos-container">
-                <div class="products-area">
-                    <div class="category-filter" id="category-list">
-                        <!-- Categories here -->
-                    </div>
-                    <div class="product-grid" id="product-grid">
-                        <!-- Products here -->
-                    </div>
-                </div>
-                <div class="cart-area">
-                    <h2>Current Order</h2>
-                    <div class="cart-items" id="cart-items">
-                        <!-- Cart items here -->
-                    </div>
-                    <div class="cart-total">
-                        Total: Rp <span id="cart-total">0</span>
-                    </div>
-                    <button class="btn-checkout" onclick="pos.checkout()">Checkout</button>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-        window.pos = this;
-
-        await this.checkShiftStatus();
-        await this.loadData();
 
         // New UI States
         this.currentView = 'lobby'; // lobby, menu, cart, success
         this.activeTab = 'all'; // all, makanan, minuman
         this.activeSubTab = 'all';
-
-        window.pos = this; // Make instance globally available immediately
     }
 
     async render(container) {
         this.container = container;
+        window.pos = this; // Expose to global scope
+
         // Initial check and load
         await this.checkShiftStatus();
         await this.loadData();
@@ -83,9 +52,8 @@ class POSView {
 
     updateShiftUI() {
         const statusDiv = document.getElementById('shift-status-display');
-        if (!statusDiv) return; // Safety check
-
         if (!statusDiv) return;
+
         const indicator = statusDiv.querySelector('.indicator');
         const text = statusDiv.querySelector('span');
 
@@ -99,17 +67,6 @@ class POSView {
     }
 
     async toggleShift() {
-        if (this.shiftOpen) {
-            const amount = prompt("Enter closing cash amount:", "0");
-            if (amount !== null) {
-                await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
-                this.shiftOpen = false;
-            }
-        } else {
-            const amount = prompt("Enter starting cash amount:", "0");
-            if (amount !== null) {
-                await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
-                this.shiftOpen = true;
         try {
             if (this.shiftOpen) {
                 const amount = prompt("Enter closing cash amount:", "0");
@@ -140,12 +97,16 @@ class POSView {
     }
 
     async loadData() {
-        const [cats, prods] = await Promise.all([
-            api.get('/inventory/categories'),
-            api.get('/inventory/products')
-        ]);
-        this.categories = cats;
-        this.products = prods;
+        try {
+            const [products, categories] = await Promise.all([
+                api.get('/inventory/products'),
+                api.get('/inventory/categories')
+            ]);
+            this.products = products || [];
+            this.categories = categories || [];
+        } catch (e) {
+            console.error("Failed to load data", e);
+        }
     }
 
     // --- VIEWS ---
@@ -166,38 +127,29 @@ class POSView {
 
     renderMenu() {
         try {
-            // If products not loaded yet, show loading or try to load
-            if (!this.products) {
-                this.loadData().then(() => {
-                    if (this.currentView === 'menu') this.renderMenu();
-                });
-                this.container.innerHTML = '<div style="text-align:center; padding:2rem;">Loading menu...</div>';
-                return;
-            }
-
             // Filter logic
             let filteredProducts = this.products;
-        let subTabs = [];
+            let subTabs = [];
 
-        if (this.activeTab === 'makanan') {
-            // Filter for Food categories (Snacks, Main Course)
-            const foodCats = ['Snacks', 'Main Course'];
-            filteredProducts = this.products.filter(p => foodCats.includes(p.category));
-            subTabs = foodCats;
-        } else if (this.activeTab === 'minuman') {
-            // Filter for Drink categories
-            const drinkCats = ['Signature Coffee', 'Classic Coffee', 'Non-Coffee'];
-            filteredProducts = this.products.filter(p => drinkCats.includes(p.category));
-            subTabs = drinkCats;
-        }
+            if (this.activeTab === 'makanan') {
+                // Filter for Food categories (Snacks, Main Course, Dessert)
+                const foodCats = ['Snacks', 'Main Course', 'Dessert'];
+                filteredProducts = this.products.filter(p => foodCats.includes(p.category));
+                subTabs = foodCats;
+            } else if (this.activeTab === 'minuman') {
+                // Filter for Drink categories
+                const drinkCats = ['Signature Coffee', 'Classic Coffee', 'Non-Coffee'];
+                filteredProducts = this.products.filter(p => drinkCats.includes(p.category));
+                subTabs = drinkCats;
+            }
 
-        // Sub-tab filter
-        if (this.activeSubTab !== 'all') {
-            filteredProducts = filteredProducts.filter(p => p.category === this.activeSubTab);
-        }
+            // Sub-tab filter
+            if (this.activeSubTab !== 'all') {
+                filteredProducts = filteredProducts.filter(p => p.category === this.activeSubTab);
+            }
 
-        const cartCount = this.cart.reduce((sum, item) => sum + item.quantity, 0);
-        const cartTotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const cartCount = this.cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartTotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
             const html = `
                 <div style="height:100%; display:flex; flex-direction:column; overflow-y:auto;">
@@ -249,50 +201,6 @@ class POSView {
         }
     }
 
-    async loadData() {
-        const [products, categories] = await Promise.all([
-            api.get('/inventory/products'),
-            api.get('/inventory/categories')
-        ]);
-        this.products = products;
-        this.categories = categories;
-
-        this.renderCategories();
-        this.renderProducts();
-    }
-
-    renderCategories() {
-        const container = document.getElementById('category-list');
-        const allBtn = `<button class="btn-category ${this.activeCategory === 'All' ? 'active' : ''}" onclick="pos.filterCategory('All')">All</button>`;
-
-        const catBtns = this.categories.map(c => `
-            <button class="btn-category ${this.activeCategory === c.name ? 'active' : ''}" onclick="pos.filterCategory('${c.name}')">${c.name}</button>
-        `).join('');
-
-        container.innerHTML = allBtn + catBtns;
-    }
-
-    filterCategory(name) {
-        this.activeCategory = name;
-        this.renderCategories(); // Re-render to update active class
-        this.renderProducts();
-    }
-
-    renderProducts() {
-        const grid = document.getElementById('product-grid');
-
-        let filtered = this.products;
-        if (this.activeCategory !== 'All') {
-            filtered = this.products.filter(p => p.category === this.activeCategory);
-        }
-
-        grid.innerHTML = filtered.map(p => `
-            <div class="product-card" onclick="pos.addToCart(${p.id})">
-                <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="product-img">
-                <div class="product-info">
-                    <h4>${p.name}</h4>
-                    <div class="product-price">Rp ${p.price.toLocaleString()}</div>
-                    <small>Stock: ${p.stock}</small>
     renderProductCard(p) {
         const cartItem = this.cart.find(i => i.id === p.id);
         const qty = cartItem ? cartItem.quantity : 0;
@@ -300,7 +208,7 @@ class POSView {
         return `
             <div class="kiosk-card" onclick="pos.addToCart(${p.id})">
                 ${qty > 0 ? `<div class="qty-badge">${qty}</div>` : ''}
-                <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="card-img" loading="lazy">
+                <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="card-img" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
                 <div class="card-body">
                     <div class="card-title">${p.name}</div>
                     <div class="card-price">Rp ${p.price.toLocaleString()}</div>
@@ -375,7 +283,7 @@ class POSView {
                         <span>Rp ${total.toLocaleString()}</span>
                     </div>
 
-                    <button class="btn-primary-action" onclick="pos.processPayment()">
+                    <button class="btn-primary-action" onclick="pos.openPaymentModal()">
                         Bayar Sekarang
                     </button>
                     <button style="margin-top:10px; width:100%; padding:1rem; background:transparent; border:none; color:#888; cursor:pointer;"
@@ -435,7 +343,8 @@ class POSView {
         } else {
             this.cart.push({ ...product, quantity: 1 });
         }
-        this.updateView(); // Re-render to update badges/bottom bar
+        // Don't full re-render, just update badge? For now full re-render is safer
+        this.updateView();
     }
 
     changeQty(id, change) {
@@ -449,42 +358,134 @@ class POSView {
         }
     }
 
-    async processPayment() {
-        // Simulating a payment modal input or direct success for Kiosk
-        // Ideally we ask for payment type. For now, let's assume full cash/card payment matches total.
-        
-        const amount = prompt(`Total is Rp ${this.currentTotal.toLocaleString()}. Enter payment amount:`, this.currentTotal);
-        if (!amount) return;
+    // --- PAYMENT LOGIC ---
 
-        const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        // Simple prompt for now, can be upgraded to modal
-        const payment = prompt(`Total: Rp ${total.toLocaleString()}\nEnter Payment Amount:`);
-        const payment = parseFloat(amount);
-        if (isNaN(payment) || payment < this.currentTotal) {
-            alert("Insufficient payment.");
+    openPaymentModal() {
+        const overlay = document.getElementById('modal-overlay');
+        const container = document.getElementById('modal-container');
+        
+        container.innerHTML = `
+            <div class="modal-header">
+                <h2>Metode Pembayaran</h2>
+                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <h3 style="text-align:center; margin-bottom: 20px;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <button class="btn-huge" style="background:#2C3E50" onclick="pos.showCashPayment()">
+                        <i class="fas fa-money-bill-wave"></i><br>Cash
+                    </button>
+                    <button class="btn-huge" style="background:#2C3E50" onclick="pos.showCashlessPayment()">
+                        <i class="fas fa-qrcode"></i><br>Cashless (QRIS)
+                    </button>
+                </div>
+            </div>
+        `;
+
+        overlay.classList.remove('hidden');
+    }
+
+    showCashPayment() {
+        const container = document.getElementById('modal-container');
+        container.innerHTML = `
+             <div class="modal-header">
+                <h2>Pembayaran Tunai (Cash)</h2>
+                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <h3 style="text-align:center;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
+
+                <div style="margin: 20px 0;">
+                    <label>Nominal Diterima:</label>
+                    <input type="number" id="cash-input" class="form-control" style="width:100%; padding:10px; font-size:1.2rem;" placeholder="Rp 0">
+                </div>
+
+                <div id="change-display" style="text-align:center; font-size:1.2rem; font-weight:bold; margin-bottom:20px;">
+                    Kembalian: Rp 0
+                </div>
+
+                <button class="btn-primary-action" onclick="pos.processCashPayment()">Bayar</button>
+            </div>
+        `;
+
+        const input = document.getElementById('cash-input');
+        input.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value) || 0;
+            const change = val - this.currentTotal;
+            const disp = document.getElementById('change-display');
+            if (change >= 0) {
+                disp.style.color = 'green';
+                disp.textContent = `Kembalian: Rp ${change.toLocaleString()}`;
+            } else {
+                disp.style.color = 'red';
+                disp.textContent = `Kurang: Rp ${Math.abs(change).toLocaleString()}`;
+            }
+        });
+        input.focus();
+    }
+
+    showCashlessPayment() {
+        const container = document.getElementById('modal-container');
+        // Use relative path from where index.html is loaded, or absolute web path if needed.
+        // Since we downloaded it to coffee-shop-app/frontend/img/qris.png, the relative path from index.html is img/qris.png
+        container.innerHTML = `
+             <div class="modal-header">
+                <h2>Pembayaran QRIS</h2>
+                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+            </div>
+            <div style="padding: 20px; text-align:center;">
+                <h3 style="margin-bottom: 10px;">Scan untuk Bayar</h3>
+                <img src="img/qris.png" style="width:250px; height:250px; object-fit:contain; border: 1px solid #ccc;" alt="QRIS Code" onerror="this.src='https://via.placeholder.com/250?text=QRIS+Error'">
+
+                <h3 style="margin: 20px 0;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
+
+                <p style="color:#666; margin-bottom:20px;">Silakan tunjukkan bukti pembayaran ke kasir jika diperlukan.</p>
+
+                <button class="btn-primary-action" onclick="pos.processCashlessPayment()">Konfirmasi Pembayaran</button>
+            </div>
+        `;
+    }
+
+    async processCashPayment() {
+        const input = document.getElementById('cash-input');
+        const amount = parseFloat(input.value);
+
+        if (!amount || amount < this.currentTotal) {
+            alert("Nominal pembayaran kurang!");
             return;
         }
 
+        await this.finalizeOrder('Cash', amount);
+    }
+
+    async processCashlessPayment() {
+        // In a real app, we might check a webhook here.
+        // For now, we assume manual confirmation.
+        await this.finalizeOrder('QRIS', this.currentTotal);
+    }
+
+    async finalizeOrder(method, received) {
         const orderData = {
-            total_amount: this.currentTotal, // Backend recalculates this anyway
-            payment_received: payment,
+            total_amount: this.currentTotal,
+            payment_method: method,
+            payment_received: received,
             items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
         };
 
-            api.post('/pos/orders', orderData).then(() => {
-                alert(`Success! Change: Rp ${(parseFloat(payment) - total).toLocaleString()}`);
-                this.cart = [];
-                this.updateCart();
-                this.loadData(); // Refresh stock
-            });
-        } else {
-            alert("Insufficient payment or cancelled.");
         try {
-            await api.post('/pos/orders', orderData);
+            const res = await api.post('/pos/orders', orderData);
+            if (res.error) {
+                alert(res.error);
+                return;
+            }
+
+            document.getElementById('modal-overlay').classList.add('hidden');
             this.setView('success');
             this.cart = [];
         } catch (err) {
             alert("Payment failed: " + err.message);
+            console.error(err);
         }
     }
 
