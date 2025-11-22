@@ -37,6 +37,27 @@ body {
     display: flex;
     flex-direction: column;
     padding: 1rem;
+    transition: transform 0.3s ease;
+    z-index: 200;
+}
+
+.sidebar.hidden {
+    display: none;
+}
+
+/* In Kiosk mode, sidebar behaves like a drawer */
+body.kiosk-mode .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex; /* Override display:none from global hidden logic if we toggle it */
+    transform: translateX(0);
+}
+
+body.kiosk-mode .sidebar.hidden {
+    transform: translateX(-100%);
+    display: flex; /* Keep layout, just hide offscreen */
 }
 
 .brand {
