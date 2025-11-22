@@ -25,13 +25,18 @@ class App {
 
     async init(isLoggedIn) {
         if (isLoggedIn) {
-            this.sidebar.classList.remove('hidden');
+            // Default to hidden sidebar for Kiosk mode, handled by navigate
             await this.navigate('pos');
             this.applyRolePermissions();
         } else {
+            document.getElementById('kiosk-header').classList.add('hidden');
             this.sidebar.classList.add('hidden');
             await this.navigate('login');
         }
+    }
+
+    toggleSidebar() {
+        this.sidebar.classList.toggle('hidden');
     }
 
     login(authData) {
@@ -49,6 +54,25 @@ class App {
     async navigate(page) {
         if (page !== 'login' && !this.userRole) {
             return this.navigate('login');
+        }
+
+        const header = document.getElementById('kiosk-header');
+        const sidebar = document.getElementById('app-sidebar');
+
+        // Handle UI State based on page
+        if (page === 'pos') {
+            header.classList.remove('hidden');
+            sidebar.classList.add('hidden'); // Sidebar hidden by default in POS
+            document.body.classList.add('kiosk-mode');
+        } else if (page === 'login') {
+            header.classList.add('hidden');
+            sidebar.classList.add('hidden');
+            document.body.classList.remove('kiosk-mode');
+        } else {
+            // Admin pages
+            header.classList.add('hidden');
+            sidebar.classList.remove('hidden');
+            document.body.classList.remove('kiosk-mode');
         }
 
         // Update UI tabs

@@ -5,13 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coffee Shop POS</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/kiosk.css"> <!-- New CSS -->
     <link rel="stylesheet" href="css/login.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Kiosk Header (Initially hidden, shown in POS mode) -->
+    <header class="kiosk-header hidden" id="kiosk-header">
+        <div class="kiosk-brand">
+            <button class="menu-toggle" onclick="app.toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <i class="fas fa-coffee"></i>
+            <span>Coffee Shop Cafe and Restaurant</span>
+        </div>
+        <!-- Optional: User profile or time -->
+    </header>
+
     <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar">
+        <!-- Sidebar Navigation (Hidden by default in Kiosk mode) -->
+        <nav class="sidebar hidden" id="app-sidebar">
             <div class="brand">
                 <i class="fas fa-coffee"></i>
                 <span>COFFEE POS</span>
@@ -19,7 +32,7 @@
             <ul class="nav-links">
                 <li class="active" onclick="app.navigate('pos')">
                     <i class="fas fa-cash-register"></i>
-                    <span>POS</span>
+                    <span>POS (Kiosk)</span>
                 </li>
                 <li onclick="app.navigate('inventory')">
                     <i class="fas fa-box-open"></i>
