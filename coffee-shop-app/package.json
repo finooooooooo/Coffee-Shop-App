@@ -4,10 +4,14 @@
   "description": "Sistem POS Restoran dengan 3-Display",
   "main": "frontend/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "python3 backend/app.py & electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["pos", "restoran", "electron"],
+  "keywords": [
+    "pos",
+    "restoran",
+    "electron"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {

@@ -67,11 +67,15 @@ class POSView {
     }
 
     async toggleShift() {
+        console.log("Attempting to toggle shift...");
         try {
             if (this.shiftOpen) {
+                console.log("Shift is currently open. Requesting close amount...");
                 const amount = prompt("Enter closing cash amount:", "0");
+                console.log("User entered close amount:", amount);
                 if (amount !== null) {
                     const res = await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
+                    console.log("Shift end response:", res);
                     if (res.error && res.error !== 'No active shift') {
                         alert(res.error);
                         return;
@@ -79,9 +83,12 @@ class POSView {
                     this.shiftOpen = false;
                 }
             } else {
+                console.log("Shift is currently closed. Requesting start amount...");
                 const amount = prompt("Enter starting cash amount:", "0");
+                console.log("User entered start amount:", amount);
                 if (amount !== null) {
                     const res = await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
+                    console.log("Shift start response:", res);
                     if (res.error && res.error !== 'Shift already open') {
                         alert(res.error);
                         return;
