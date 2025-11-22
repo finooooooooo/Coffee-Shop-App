@@ -23,7 +23,6 @@ def create_app():
     app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
     app.register_blueprint(pos_bp, url_prefix='/api/pos')
     app.register_blueprint(report_bp, url_prefix='/api/report')
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
     return app
 

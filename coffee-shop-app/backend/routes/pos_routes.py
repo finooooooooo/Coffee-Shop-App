@@ -62,6 +62,10 @@ def create_order():
     for item in data['items']:
         product = db.session.get(Product, item['id'])
         if product:
+            # Check stock availability
+            if product.stock < item['quantity']:
+                return jsonify({'error': f"Insufficient stock for product '{product.name}'"}), 400
+
             subtotal = item['quantity'] * product.price
             calculated_total += subtotal
             order_items_data.append({
