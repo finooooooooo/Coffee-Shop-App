@@ -1,0 +1,264 @@
+/* Modern Kiosk / Menu Theme */
+:root {
+    --kiosk-bg: #F4F1EA; /* Light cream */
+    --kiosk-white: #FFFFFF;
+    --kiosk-primary: #4E342E; /* Dark Brown */
+    --kiosk-accent: #6D4C41; /* Lighter Brown */
+    --kiosk-highlight: #D7CCC8;
+    --kiosk-success: #2E7D32; /* Green */
+    --kiosk-text: #2C3E50;
+    --kiosk-gray: #9E9E9E;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+}
+
+/* Global Kiosk Layout Overrides */
+body.kiosk-mode {
+    background-color: var(--kiosk-bg);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Header */
+.kiosk-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background-color: var(--kiosk-white);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 300;
+}
+
+.kiosk-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--kiosk-primary);
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--kiosk-primary);
+}
+
+/* Tab Navigation */
+.kiosk-tabs {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    overflow-x: auto;
+    background: var(--kiosk-bg);
+}
+
+.kiosk-tab {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 50px;
+    background: var(--kiosk-white);
+    color: var(--kiosk-text);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.kiosk-tab.active {
+    background: var(--kiosk-primary);
+    color: var(--kiosk-white);
+}
+
+/* Sub-tabs (Pills) */
+.kiosk-subtabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 2rem 1rem;
+}
+
+.subtab {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid var(--kiosk-accent);
+    color: var(--kiosk-accent);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.subtab.active {
+    background: var(--kiosk-accent);
+    color: white;
+}
+
+/* Grid Layout */
+.kiosk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    padding: 0 2rem 6rem; /* Bottom padding for floating bar */
+}
+
+/* Product Card */
+.kiosk-card {
+    background: var(--kiosk-white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.kiosk-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+}
+
+.card-body {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--kiosk-primary);
+}
+
+.card-price {
+    color: var(--kiosk-success);
+    font-weight: bold;
+    margin-top: auto;
+}
+
+.btn-add {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--kiosk-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qty-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--kiosk-accent);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+/* Floating Bottom Bar */
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--kiosk-white);
+    padding: 1rem 2rem;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 90;
+}
+
+.btn-primary-action {
+    background: var(--kiosk-primary);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Lobby */
+.lobby-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--kiosk-bg);
+    text-align: center;
+}
+
+.lobby-title {
+    font-size: 3rem;
+    color: var(--kiosk-primary);
+    margin-bottom: 2rem;
+}
+
+.btn-huge {
+    padding: 1.5rem 4rem;
+    font-size: 1.5rem;
+    border-radius: 50px;
+    background: var(--kiosk-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+}
+
+/* Cart Page */
+.cart-page {
+    padding: 2rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.cart-table {
+    width: 100%;
+    background: white;
+    border-radius: var(--radius-sm);
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+}
+
+.cart-table th, .cart-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-summary {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-sm);
+    margin-top: auto;
+}

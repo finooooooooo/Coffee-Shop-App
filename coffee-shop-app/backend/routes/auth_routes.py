@@ -27,3 +27,11 @@ def login():
         })
 
     return jsonify({'error': 'Invalid credentials'}), 401
+    # Hardcoded credentials as requested
+    if username == 'Admin' and password == 'admin':
+        return jsonify({'token': 'admin-token', 'role': 'Admin', 'success': True})
+    
+    if username == 'Kasir' and password == 'kasir':
+        return jsonify({'token': 'kasir-token', 'role': 'Kasir', 'success': True})
+
+    return jsonify({'error': 'Invalid credentials', 'success': False}), 401

@@ -7,12 +7,28 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/pos.css">
+    <link rel="stylesheet" href="css/kiosk.css"> <!-- New CSS -->
+    <link rel="stylesheet" href="css/login.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Kiosk Header (Initially hidden, shown in POS mode) -->
+    <header class="kiosk-header hidden" id="kiosk-header">
+        <div class="kiosk-brand">
+            <button class="menu-toggle" onclick="app.toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <i class="fas fa-coffee"></i>
+            <span>Coffee Shop Cafe and Restaurant</span>
+        </div>
+        <!-- Optional: User profile or time -->
+    </header>
+
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar hidden">
+        <!-- Sidebar Navigation (Hidden by default in Kiosk mode) -->
+        <nav class="sidebar hidden" id="app-sidebar">
             <div class="brand">
                 <i class="fas fa-coffee"></i>
                 <span>COFFEE POS</span>
@@ -20,7 +36,7 @@
             <ul class="nav-links">
                 <li class="active" onclick="app.navigate('pos')">
                     <i class="fas fa-cash-register"></i>
-                    <span>POS</span>
+                    <span>POS (Kiosk)</span>
                 </li>
                 <li onclick="app.navigate('inventory')">
                     <i class="fas fa-box-open"></i>
@@ -29,6 +45,10 @@
                 <li onclick="app.navigate('reports')">
                     <i class="fas fa-chart-line"></i>
                     <span>Reports</span>
+                </li>
+                <li onclick="app.navigate('history')">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
                 </li>
             </ul>
             <div class="user-profile">
@@ -59,6 +79,7 @@
     <script src="js/views/pos.js"></script>
     <script src="js/views/inventory.js"></script>
     <script src="js/views/reports.js"></script>
+    <script src="js/views/history.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
