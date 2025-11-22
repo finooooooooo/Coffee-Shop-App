@@ -112,31 +112,36 @@ body.kiosk-mode {
 }
 
 .subtab {
-    padding: 0.6rem 1.5rem;
+    padding: 0.8rem 2rem;
     border-radius: 30px;
-    background: transparent;
+    background: var(--kiosk-white);
     border: 2px solid var(--kiosk-secondary);
     color: var(--kiosk-primary);
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 1.1rem;
+    font-weight: 600;
     transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
 }
 
 .subtab:hover {
-    background: rgba(190, 155, 123, 0.2);
+    background: var(--kiosk-highlight);
+    border-color: var(--kiosk-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .subtab.active {
     background: var(--kiosk-secondary);
     color: white;
     border-color: var(--kiosk-secondary);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Grid Layout */
 .kiosk-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 2rem;
     padding: 1rem 3rem 8rem; /* Bottom padding for floating bar */
 }
@@ -155,27 +160,27 @@ body.kiosk-mode {
 }
 
 .kiosk-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
     box-shadow: var(--shadow-lg);
     border-color: var(--kiosk-secondary);
 }
 
 .card-img {
     width: 100%;
-    height: 180px;
+    height: 200px;
     object-fit: cover;
     border-bottom: 1px solid #f0f0f0;
 }
 
 .card-body {
-    padding: 1.2rem;
+    padding: 1.5rem;
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
 .card-title {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     color: var(--kiosk-primary);
@@ -185,16 +190,16 @@ body.kiosk-mode {
 .card-price {
     color: var(--kiosk-accent);
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     margin-top: auto;
 }
 
 .btn-add {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
-    width: 40px;
-    height: 40px;
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
     background: var(--kiosk-primary);
     color: white;
@@ -203,32 +208,33 @@ body.kiosk-mode {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     box-shadow: var(--shadow-md);
     transition: transform 0.2s, background 0.2s;
 }
 
 .btn-add:hover {
     background: var(--kiosk-accent);
-    transform: scale(1.1);
+    transform: scale(1.1) rotate(90deg);
 }
 
 .qty-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 15px;
+    right: 15px;
     background: var(--kiosk-accent);
     color: white;
-    min-width: 28px;
-    height: 28px;
-    border-radius: 14px;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: bold;
-    padding: 0 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 0;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    border: 2px solid white;
 }
 
 /* Floating Bottom Bar */
@@ -238,7 +244,7 @@ body.kiosk-mode {
     left: 0;
     right: 0;
     background: var(--kiosk-white);
-    padding: 1.2rem 3rem;
+    padding: 1.5rem 3rem;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     display: flex;
     justify-content: space-between;
@@ -263,6 +269,7 @@ body.kiosk-mode {
 
 .btn-primary-action:hover {
     background: var(--kiosk-accent);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Lobby */
@@ -275,30 +282,32 @@ body.kiosk-mode {
     background: var(--kiosk-bg);
     text-align: center;
     padding: 2rem;
+    background-image: radial-gradient(circle at center, rgba(190, 155, 123, 0.1) 0%, transparent 70%);
 }
 
 .lobby-title {
     font-size: 3.5rem;
     font-weight: 800;
     color: var(--kiosk-primary);
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
 }
 
 .btn-huge {
-    padding: 1.5rem 5rem;
-    font-size: 1.8rem;
-    border-radius: 50px;
+    padding: 2rem 6rem;
+    font-size: 2rem;
+    border-radius: 60px;
     background: var(--kiosk-primary);
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: var(--shadow-lg);
-    transition: transform 0.2s;
+    box-shadow: 0 10px 30px rgba(75, 56, 50, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-huge:hover {
-    transform: scale(1.05);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(75, 56, 50, 0.4);
     background: var(--kiosk-accent);
 }
 
@@ -350,47 +359,53 @@ body.kiosk-mode {
 }
 
 .btn-qty {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    border: 1px solid var(--kiosk-gray);
+    border: 2px solid var(--kiosk-secondary);
     background: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--kiosk-primary);
+    font-weight: bold;
+    transition: all 0.2s;
 }
 
 .btn-qty:hover {
-    border-color: var(--kiosk-primary);
-    background: #f8f8f8;
+    border-color: var(--kiosk-accent);
+    background: var(--kiosk-highlight);
+    color: var(--kiosk-accent);
 }
 
 .btn-delete {
     background: #ffebee;
     color: #c62828;
     border: none;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-delete:hover {
-    background: #ffcdd2;
+    background: #ef5350;
+    color: white;
+    box-shadow: 0 4px 10px rgba(239, 83, 80, 0.3);
 }
 
 .cart-summary {
     background: white;
-    padding: 2rem;
-    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
     margin-top: auto;
     box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 /* Modal overrides for aesthetics */
@@ -398,12 +413,13 @@ body.kiosk-mode {
     border-radius: var(--radius-lg);
     border: none;
     box-shadow: var(--shadow-lg);
+    overflow: hidden;
 }
 
 .modal-header {
     background: var(--kiosk-primary);
     color: white;
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
     display: flex;
@@ -413,7 +429,8 @@ body.kiosk-mode {
 
 .modal-header h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+    font-weight: 700;
 }
 
 .modal-header button {
@@ -422,4 +439,10 @@ body.kiosk-mode {
     color: white;
     font-size: 2rem;
     cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.modal-header button:hover {
+    opacity: 1;
 }
