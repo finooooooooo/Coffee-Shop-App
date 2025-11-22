@@ -19,6 +19,7 @@ def create_app():
         db.create_all()
 
     # Register Blueprints
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
     app.register_blueprint(pos_bp, url_prefix='/api/pos')
     app.register_blueprint(report_bp, url_prefix='/api/report')
