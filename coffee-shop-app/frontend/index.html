@@ -11,44 +11,51 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Kiosk Header (Initially hidden, shown in POS mode) -->
+    <!-- Kiosk Header (Only for Kiosk Mode) -->
     <header class="kiosk-header hidden" id="kiosk-header">
         <div class="kiosk-brand">
             <button class="menu-toggle" onclick="app.toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
             <i class="fas fa-coffee"></i>
-            <span>Coffee Shop Cafe and Restaurant</span>
+            <span>Coffee Shop</span>
         </div>
     </header>
 
     <div class="app-container">
-        <!-- Sidebar Navigation (Hidden by default in Kiosk mode) -->
+        <!-- Sidebar Navigation -->
         <nav class="sidebar hidden" id="app-sidebar">
-            <div class="brand">
-                <i class="fas fa-coffee"></i>
-                <span>COFFEE POS</span>
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-coffee" style="margin-right: 10px;"></i>
+                    COFFEE POS
+                </div>
             </div>
-            <ul class="nav-links">
-                <li class="active" onclick="app.navigate('pos')">
+
+            <div style="flex: 1;">
+                <a href="#" class="nav-link active" onclick="app.navigate('pos'); return false;" id="nav-pos">
                     <i class="fas fa-cash-register"></i>
                     <span>POS (Kiosk)</span>
-                </li>
-                <li onclick="app.navigate('inventory')">
+                </a>
+                <a href="#" class="nav-link" onclick="app.navigate('inventory'); return false;" id="nav-inventory">
                     <i class="fas fa-box-open"></i>
                     <span>Inventory</span>
-                </li>
-                <li onclick="app.navigate('reports')">
+                </a>
+                <a href="#" class="nav-link" onclick="app.navigate('reports'); return false;" id="nav-reports">
                     <i class="fas fa-chart-line"></i>
                     <span>Reports</span>
-                </li>
-                <li onclick="app.navigate('history')">
+                </a>
+                <a href="#" class="nav-link" onclick="app.navigate('history'); return false;" id="nav-history">
                     <i class="fas fa-history"></i>
                     <span>History</span>
-                </li>
-            </ul>
-            <div class="user-profile">
-                <!-- Shift toggle removed -->
+                </a>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link" onclick="app.logout(); return false;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
             </div>
         </nav>
 
