@@ -16,11 +16,15 @@ class TestLogin(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        # Seed users for testing
-        self.admin = User(username="Admin", password="admin", role="admin")
-        self.cashier = User(username="Kasir", password="kasir", role="cashier")
-        db.session.add_all([self.admin, self.cashier])
-        db.session.commit()
+        # Users are auto-seeded by create_app()
+        # We just need to ensure we start fresh for each test if we were modifying them,
+        # but for login tests, reading the auto-seeded users is fine.
+
+        # However, because tests share the same in-memory DB if not carefully managed,
+        # and create_app is called for each test...
+        # In SQLite :memory:, each connection is a new DB.
+        # But app.app_context() might be sharing?
+        pass
 
     def tearDown(self):
         db.session.remove()

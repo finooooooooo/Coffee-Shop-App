@@ -17,6 +17,9 @@ def create_app():
     # Create DB tables if they don't exist (simple migration)
     with app.app_context():
         db.create_all()
+        # Auto-seed if empty
+        from seeder import seed_database
+        seed_database()
 
     # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
