@@ -84,7 +84,7 @@ class Order(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'order_id': f"P{self.daily_order_number:03d}" if self.daily_order_number else f"P{self.id:03d}",
+            'order_id': f"P-{self.daily_order_number:03d}" if self.daily_order_number else f"P-{self.id:03d}",
             'total_amount': self.total_amount,
             'payment_method': self.payment_method,
             'created_at': self.created_at.isoformat(),
