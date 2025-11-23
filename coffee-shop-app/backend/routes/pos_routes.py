@@ -80,13 +80,17 @@ def create_order():
         else:
             return jsonify({'error': f"Product with id {item['id']} not found"}), 404
 
+    payment_received = data.get('payment_received', 0)
+    if payment_received < calculated_total:
+        return jsonify({'error': f"Insufficient payment. Expected {calculated_total}, received {payment_received}"}), 400
+
     # 2. Create order with calculated total
     new_order = Order(
         shift_id=shift_id,
         total_amount=calculated_total,  # Use calculated total
         payment_method=data.get('payment_method', 'Cash'),
-        payment_received=data.get('payment_received', 0),
-        change_given=data.get('payment_received', 0) - calculated_total, # Recalculate change too
+        payment_received=payment_received,
+        change_given=payment_received - calculated_total, # Recalculate change too
         customer_name=data.get('customer_name'),
         table_number=data.get('table_number')
     )
