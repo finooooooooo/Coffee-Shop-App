@@ -5,12 +5,18 @@ from datetime import datetime, date
 
 class TestKitchenBar(unittest.TestCase):
     def setUp(self):
+        # Configure app for testing with in-memory DB
         app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+
         self.client = app.test_client()
         self.created_orders = []
 
         with app.app_context():
-            # Get existing categories (seeded by app)
+            # Create all tables for the in-memory DB
+            db.create_all()
+
+            # Check if categories already exist (from auto-seeding)
             self.cat_drink = Category.query.filter_by(name='Classic Coffee').first()
             if not self.cat_drink:
                 self.cat_drink = Category(name='Classic Coffee')
@@ -36,19 +42,8 @@ class TestKitchenBar(unittest.TestCase):
 
     def tearDown(self):
         with app.app_context():
-            # Delete orders created during test
-            for oid in self.created_orders:
-                order = db.session.get(Order, oid)
-                if order:
-                    # Items cascade delete? Usually yes if configured, otherwise delete items first
-                    OrderItem.query.filter_by(order_id=oid).delete()
-                    db.session.delete(order)
-
-            # Delete test products
-            Product.query.filter(Product.name.in_(['TestCoffee_Unit', 'TestFood_Unit'])).delete()
-
-            db.session.commit()
             db.session.remove()
+            db.drop_all()
 
     def test_order_creation_sets_status(self):
         """Test that creating an order sets the correct initial kitchen/bar status based on items."""

@@ -15,10 +15,26 @@ class App {
             bar: new BarView()
         };
 
+        // Sync Login State across windows
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'user' || event.key === 'userRole') {
+                if (localStorage.getItem('user')) {
+                    // Login happened elsewhere
+                    this.init();
+                } else {
+                    // Logout happened elsewhere
+                    this.logout();
+                }
+            }
+        });
+
         this.init();
     }
 
     async init(isLoggedIn) {
+        // Check for specific Window Hash (Kitchen/Bar)
+        const hash = window.location.hash.replace('#', '');
+
         // Check if already logged in (simple persistence)
         if (isLoggedIn === undefined) {
             const storedRole = localStorage.getItem('userRole');
@@ -33,6 +49,29 @@ class App {
             }
         }
 
+        // Dedicated Display Logic (Kitchen/Bar)
+        if (hash === 'kitchen' || hash === 'bar') {
+            // Hide sidebar and header permanently for these views
+            const header = document.getElementById('kiosk-header');
+            const sidebar = document.getElementById('app-sidebar');
+            if (header) header.style.display = 'none';
+            if (sidebar) sidebar.style.display = 'none';
+            document.body.classList.add('display-mode'); // New class for full width
+
+            // If not logged in, wait or show placeholder?
+            // For now, we'll try to navigate. If blocked by Auth Guard, it goes to login.
+            // But for a multi-window setup, we want them to "just work" if the main one is logged in.
+            if (isLoggedIn) {
+                await this.navigate(hash);
+            } else {
+                // If not logged in, maybe show a "Waiting for Login" screen instead of the interactive login form?
+                // Or just show login form but hidden sidebar.
+                await this.navigate('login');
+            }
+            return;
+        }
+
+        // Standard Logic (POS/Admin)
         if (isLoggedIn) {
             // Default to hidden sidebar for Kiosk mode, handled by navigate
             // If cashier -> POS, if Admin -> Inventory (or POS)
@@ -59,6 +98,8 @@ class App {
 
         localStorage.setItem('userRole', this.userRole);
         localStorage.setItem('user', JSON.stringify(this.currentUser));
+
+        // We re-init to handle navigation
         this.init(true);
     }
 
@@ -67,11 +108,21 @@ class App {
         this.currentUser = null;
         localStorage.removeItem('userRole');
         localStorage.removeItem('user');
-        this.init(false);
+
+        // Reload to reset state clean
+        window.location.reload();
     }
 
     async navigate(page) {
         // Auth Guard
+        // Allow 'login' always.
+        // If we are in 'kitchen' or 'bar' mode (hash), strictly allow only that page + login.
+        const hash = window.location.hash.replace('#', '');
+        if (hash && (hash === 'kitchen' || hash === 'bar') && page !== 'login' && page !== hash) {
+            // Force back to the hash view if attempting to navigate away in display mode
+            return this.navigate(hash);
+        }
+
         if (page !== 'login' && !this.userRole) {
             return this.navigate('login');
         }
@@ -92,6 +143,10 @@ class App {
             if (header) header.classList.add('hidden');
             if (sidebar) sidebar.classList.add('hidden');
             document.body.classList.remove('kiosk-mode');
+        } else if (page === 'kitchen' || page === 'bar') {
+             if (header) header.classList.add('hidden');
+             if (sidebar) sidebar.classList.add('hidden');
+             document.body.classList.add('display-mode');
         } else {
             // Admin pages
             if (header) header.classList.add('hidden');
@@ -99,10 +154,12 @@ class App {
             document.body.classList.remove('kiosk-mode');
         }
 
-        // Update UI tabs
-        document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
-        const activeLink = document.querySelector(`li[onclick="app.navigate('${page}')"]`);
-        if (activeLink) activeLink.classList.add('active');
+        // Update UI tabs (only if sidebar is visible)
+        if (!sidebar || !sidebar.classList.contains('hidden')) {
+            document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
+            const activeLink = document.querySelector(`li[onclick="app.navigate('${page}')"]`);
+            if (activeLink) activeLink.classList.add('active');
+        }
 
         // Load view content
         const view = this.views[page];
@@ -110,6 +167,11 @@ class App {
             // Clear current view
             this.mainView.innerHTML = '';
             await view.render(this.mainView);
+
+            // If it's Kitchen/Bar view, start polling
+            if (page === 'kitchen' && view.startPolling) view.startPolling();
+            if (page === 'bar' && view.startPolling) view.startPolling();
+
         } else {
             console.error("View not found:", page);
         }
@@ -125,20 +187,6 @@ class App {
         } else {
             if (invLink) invLink.style.display = 'block';
             if (repLink) repLink.style.display = 'block';
-        }
-        
-        // Update profile section
-        const profileDiv = document.querySelector('.user-profile');
-        // Add logout button if not exists
-        if (profileDiv && !document.getElementById('btn-logout')) {
-            const logoutBtn = document.createElement('button');
-            logoutBtn.id = 'btn-logout';
-            logoutBtn.className = 'btn-shift'; // use existing class
-            logoutBtn.style.backgroundColor = 'var(--danger-color)';
-            logoutBtn.style.marginTop = '10px';
-            logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Logout';
-            logoutBtn.onclick = () => app.logout();
-            profileDiv.appendChild(logoutBtn);
         }
     }
 }

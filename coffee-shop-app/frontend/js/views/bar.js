@@ -5,24 +5,33 @@ class BarView {
 
     async render(container) {
         container.innerHTML = `
-            <div class="bar-view">
-                <div class="view-header">
-                    <h2><i class="fas fa-cocktail"></i> Bar Display System</h2>
-                    <div class="status-indicators">
-                        <span class="badge badge-pending">Pending</span>
-                        <span class="badge badge-preparing">Preparing</span>
-                    </div>
+            <div class="kitchen-view-container"> <!-- Reuse Kitchen Container styles for consistency -->
+                <div class="ticket-view-header">
+                    <h2 class="view-title"><i class="fas fa-cocktail"></i> Bar Station</h2>
+                    <div class="header-clock" id="bar-clock">--:--</div>
                 </div>
-                <div id="bar-orders-grid" class="orders-grid">
-                    <div class="loading">Loading orders...</div>
+                <div id="bar-orders-grid" class="ticket-container">
+                    <div class="loading-state"><i class="fas fa-circle-notch fa-spin"></i> Loading Tickets...</div>
                 </div>
             </div>
         `;
 
+        this.updateClock();
+        if (this.clockInterval) clearInterval(this.clockInterval);
+        this.clockInterval = setInterval(() => this.updateClock(), 1000);
         this.startPolling();
     }
 
+    updateClock() {
+        const el = document.getElementById('bar-clock');
+        if (el) {
+            const now = new Date();
+            el.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+
     startPolling() {
+        if (this.intervalId) clearInterval(this.intervalId);
         this.fetchOrders();
         this.intervalId = setInterval(() => this.fetchOrders(), 3000);
     }
@@ -44,42 +53,62 @@ class BarView {
         const grid = document.getElementById('bar-orders-grid');
         if (!grid) return;
 
-        if (orders.length === 0) {
-            grid.innerHTML = '<div class="no-orders">No active orders</div>';
+        if (!orders || orders.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-glass-cheers"></i>
+                    <h3>All Clear</h3>
+                    <p>No active drink orders</p>
+                </div>`;
             return;
         }
 
-        grid.innerHTML = orders.map(order => this.createOrderCard(order)).join('');
+        grid.innerHTML = orders.map(order => this.createTicket(order)).join('');
     }
 
-    createOrderCard(order) {
-        const statusClass = order.bar_status === 'preparing' ? 'card-preparing' : 'card-pending';
-        const btnText = order.bar_status === 'pending' ? 'Start Preparing' : 'Complete Order';
-        const btnAction = order.bar_status === 'pending' ? 'preparing' : 'completed';
-        const btnClass = order.bar_status === 'pending' ? 'btn-warning' : 'btn-success';
+    createTicket(order) {
+        // Status determination
+        const isPreparing = order.bar_status === 'preparing';
+        const statusLabel = isPreparing ? 'POURING' : 'PENDING';
+        const statusColor = isPreparing ? 'var(--warning)' : 'var(--danger)';
+
+        // Time elapsed
+        const created = new Date(order.created_at);
+        const now = new Date();
+        const diffMins = Math.floor((now - created) / 60000);
+        const timeClass = diffMins > 10 ? 'text-danger' : '';
+
+        const btnText = isPreparing ? 'Serve' : 'Make';
+        const btnAction = isPreparing ? 'completed' : 'preparing';
+        const btnStyle = isPreparing ? 'background-color: var(--success); color: #000;' : 'background-color: var(--accent-primary); color: #000;';
 
         const itemsList = order.items.map(item => `
-            <li class="order-item">
-                <span class="qty">${item.quantity}x</span>
-                <span class="name">${item.product_name}</span>
-            </li>
+            <div class="ticket-item">
+                <span class="ticket-qty">${item.quantity}</span>
+                <span class="ticket-name">${item.product_name}</span>
+            </div>
         `).join('');
 
         return `
-            <div class="order-card ${statusClass}">
-                <div class="card-header">
-                    <span class="order-id">${order.order_id}</span>
-                    <span class="timer">${new Date(order.created_at).toLocaleTimeString()}</span>
+            <div class="ticket-card" style="border-color: ${isPreparing ? 'var(--warning)' : 'var(--danger)'}">
+                <div class="ticket-header">
+                    <div>
+                        <span class="ticket-id">#${order.daily_order_number || order.id}</span>
+                        <span class="ticket-table">Table ${order.table_number || '-'}</span>
+                    </div>
+                    <div class="ticket-time ${timeClass}">${diffMins}m</div>
                 </div>
-                <div class="card-info">
-                    <div>Table: <strong>${order.table_number || 'N/A'}</strong></div>
-                    <div>Customer: ${order.customer_name || 'Guest'}</div>
+
+                <div class="ticket-status-badge" style="background-color: ${statusColor}; color: #000; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; margin-bottom: 10px;">
+                    ${statusLabel}
                 </div>
-                <ul class="item-list">
+
+                <div class="ticket-items">
                     ${itemsList}
-                </ul>
-                <div class="card-actions">
-                    <button class="btn ${btnClass}" onclick="app.views.bar.updateStatus(${order.id}, '${btnAction}')">
+                </div>
+
+                <div class="ticket-actions">
+                    <button class="btn-ticket" style="${btnStyle}; width: 100%;" onclick="app.views.bar.updateStatus(${order.id}, '${btnAction}')">
                         ${btnText}
                     </button>
                 </div>
@@ -96,7 +125,6 @@ class BarView {
             this.fetchOrders();
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Failed to update status");
         }
     }
 }
