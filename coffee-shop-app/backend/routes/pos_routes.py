@@ -5,42 +5,6 @@ from datetime import datetime
 
 pos_bp = Blueprint('pos', __name__)
 
-@pos_bp.route('/shift/start', methods=['POST'])
-def start_shift():
-    # Check if there is an open shift
-    active_shift = Shift.query.filter_by(is_open=True).first()
-    if active_shift:
-        return jsonify({'error': 'Shift already open', 'shift': active_shift.to_dict()}), 400
-
-    data = request.json
-    new_shift = Shift(start_cash=data.get('start_cash', 0))
-    db.session.add(new_shift)
-    db.session.commit()
-    return jsonify(new_shift.to_dict()), 201
-
-@pos_bp.route('/shift/end', methods=['POST'])
-def end_shift():
-    active_shift = Shift.query.filter_by(is_open=True).first()
-    if not active_shift:
-        return jsonify({'error': 'No active shift'}), 400
-
-    data = request.json
-    active_shift.end_time = datetime.utcnow()
-    active_shift.is_open = False
-    active_shift.end_cash = data.get('end_cash', 0) # Actual cash in drawer
-
-    # Calculate expected cash
-    # This is simplified; in real app we'd sum up cash payments only
-    db.session.commit()
-    return jsonify(active_shift.to_dict())
-
-@pos_bp.route('/shift/status', methods=['GET'])
-def shift_status():
-    active_shift = Shift.query.filter_by(is_open=True).first()
-    if active_shift:
-        return jsonify({'active': True, 'shift': active_shift.to_dict()})
-    return jsonify({'active': False})
-
 @pos_bp.route('/orders', methods=['GET'])
 def get_orders_history():
     # Simple history: Last 50 orders, descending
@@ -51,9 +15,8 @@ def get_orders_history():
 def create_order():
     data = request.json
 
-    # Verify shift
-    shift = Shift.query.filter_by(is_open=True).first()
-    shift_id = shift.id if shift else None
+    # Shift logic removed as requested
+    shift_id = None
 
     # 1. Calculate actual total server-side
     calculated_total = 0.0
@@ -111,8 +74,7 @@ def create_order():
         db.session.add(order_item)
         product.stock -= item_data['quantity']
 
-    if shift:
-        shift.total_sales += new_order.total_amount
+    # Shift sales tracking removed
 
     db.session.commit()
     return jsonify(new_order.to_dict()), 201

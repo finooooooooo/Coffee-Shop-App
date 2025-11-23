@@ -3,7 +3,6 @@ class POSView {
         this.cart = [];
         this.products = [];
         this.categories = [];
-        this.shiftOpen = false;
 
         // New UI States
         this.currentView = 'lobby'; // lobby, menu, cart, success
@@ -16,7 +15,6 @@ class POSView {
         window.pos = this; // Expose to global scope
 
         // Initial check and load
-        await this.checkShiftStatus();
         await this.loadData();
 
         // Route to correct internal view
@@ -42,67 +40,6 @@ class POSView {
     }
 
     // --- DATA LOADING ---
-    async checkShiftStatus() {
-        try {
-            const res = await api.get('/pos/shift/status');
-            this.shiftOpen = res.active;
-            this.updateShiftUI();
-        } catch (e) { console.error(e); }
-    }
-
-    updateShiftUI() {
-        const statusDiv = document.getElementById('shift-status-display');
-        if (!statusDiv) return;
-
-        const indicator = statusDiv.querySelector('.indicator');
-        const text = statusDiv.querySelector('span');
-
-        if (this.shiftOpen) {
-            indicator.className = 'indicator green';
-            text.textContent = 'Shift Open';
-        } else {
-            indicator.className = 'indicator red';
-            text.textContent = 'Shift Closed';
-        }
-    }
-
-    async toggleShift() {
-        console.log("Attempting to toggle shift...");
-        try {
-            if (this.shiftOpen) {
-                console.log("Shift is currently open. Requesting close amount...");
-                const amount = prompt("Enter closing cash amount:", "0");
-                console.log("User entered close amount:", amount);
-                if (amount !== null) {
-                    const res = await api.post('/pos/shift/end', { end_cash: parseFloat(amount) });
-                    console.log("Shift end response:", res);
-                    if (res.error && res.error !== 'No active shift') {
-                        alert(res.error);
-                        return;
-                    }
-                    this.shiftOpen = false;
-                }
-            } else {
-                console.log("Shift is currently closed. Requesting start amount...");
-                const amount = prompt("Enter starting cash amount:", "0");
-                console.log("User entered start amount:", amount);
-                if (amount !== null) {
-                    const res = await api.post('/pos/shift/start', { start_cash: parseFloat(amount) });
-                    console.log("Shift start response:", res);
-                    if (res.error && res.error !== 'Shift already open') {
-                        alert(res.error);
-                        return;
-                    }
-                    this.shiftOpen = true;
-                }
-            }
-            this.updateShiftUI();
-        } catch (e) {
-            console.error("Toggle Shift Error:", e);
-            alert("Failed to toggle shift. Check console for details.");
-        }
-    }
-
     async loadData() {
         try {
             const [products, categories] = await Promise.all([
@@ -344,11 +281,6 @@ class POSView {
     }
 
     addToCart(id) {
-        if (!this.shiftOpen) {
-            alert("Please open a shift first!");
-            return;
-        }
-
         const product = this.products.find(p => p.id === id);
         const existing = this.cart.find(i => i.id === id);
 

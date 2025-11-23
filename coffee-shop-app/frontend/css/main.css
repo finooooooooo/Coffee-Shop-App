@@ -1,21 +1,25 @@
 /* ... (Existing CSS) ... */
 :root {
-    --primary-color: #4E342E;
-    --secondary-color: #795548;
-    --accent-color: #D7CCC8;
-    --text-color: #2C3E50;
-    --bg-color: #F5F5F5;
-    --success-color: #2E7D32;
+    /* Merged Kiosk Theme for consistency */
+    --primary-color: #4b3832;    /* Deep Espresso */
+    --secondary-color: #be9b7b;  /* Latte */
+    --accent-color: #854442;     /* Warm Rust */
+    --text-color: #3c2f2f;       /* Dark Grey-Brown */
+    --bg-color: #fdfbf7;         /* Very Light Cream */
+    --success-color: #3c763d;    /* Natural Green */
     --danger-color: #C62828;
     --white: #FFFFFF;
-    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    /* Shared styles */
+    --card-shadow: 0 6px 16px rgba(75, 56, 50, 0.15);
+    --radius-md: 12px;
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Helvetica Neue', 'Segoe UI', Tahoma, sans-serif;
 }
 
 body {
@@ -40,6 +44,7 @@ body {
     padding: 1rem;
     transition: transform 0.3s ease;
     z-index: 200;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 
 .sidebar.hidden {
@@ -90,8 +95,8 @@ body.kiosk-mode .sidebar.hidden {
     background: white;
     width: 100%;
     max-width: 600px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 25px rgba(75, 56, 50, 0.3);
     overflow: hidden;
     animation: modalSlideIn 0.3s ease;
 }
