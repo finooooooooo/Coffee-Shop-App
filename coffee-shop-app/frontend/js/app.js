@@ -74,6 +74,10 @@ class App {
             return this.navigate('login');
         }
 
+        // Clean up any open modals
+        const modalOverlay = document.getElementById('modal-overlay');
+        if (modalOverlay) modalOverlay.classList.add('hidden');
+
         const header = document.getElementById('kiosk-header');
         const sidebar = document.getElementById('app-sidebar');
 
