@@ -3,40 +3,21 @@ class POSView {
         this.cart = [];
         this.products = [];
         this.categories = [];
-
-        // New UI States
-        this.currentView = 'lobby'; // lobby, menu, cart, success
         this.activeTab = 'all'; // all, makanan, minuman
         this.activeSubTab = 'all';
     }
 
     async render(container) {
         this.container = container;
-        window.pos = this; // Expose to global scope
+        window.pos = this;
 
-        // Initial check and load
-        await this.loadData();
-
-        // Route to correct internal view
-        this.updateView();
+        // Initial splash screen or direct load
+        this.renderLobby();
     }
 
-    updateView() {
-        this.container.innerHTML = '';
-        switch(this.currentView) {
-            case 'lobby':
-                this.renderLobby();
-                break;
-            case 'menu':
-                this.renderMenu();
-                break;
-            case 'cart':
-                this.renderCart();
-                break;
-            case 'success':
-                this.renderSuccess();
-                break;
-        }
+    async startOrder() {
+        await this.loadData();
+        this.renderSplitLayout();
     }
 
     // --- DATA LOADING ---
@@ -50,6 +31,7 @@ class POSView {
             this.categories = categories || [];
         } catch (e) {
             console.error("Failed to load data", e);
+            alert("Failed to load products. Check connection.");
         }
     }
 
@@ -57,228 +39,120 @@ class POSView {
 
     renderLobby() {
         this.container.innerHTML = `
-            <div class="lobby-container">
-                <h1 class="lobby-title">Welcome to The Coffee Shop</h1>
-                <button class="btn-huge" onclick="pos.setView('menu')">
-                    Pesan (Order)
+            <div class="lobby-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
+                <h1 style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary-color);">Welcome</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 3rem; font-size: 1.2rem;">Start a new order to begin</p>
+                <button class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.2rem; border-radius: 50px;" onclick="pos.startOrder()">
+                    New Order
                 </button>
-                <div style="margin-top: 2rem; color: #888;">
-                    <i class="fas fa-info-circle"></i> Please order at the kiosk
-                </div>
             </div>
         `;
     }
 
-    renderMenu() {
-        try {
-            // Filter logic
-            let filteredProducts = this.products;
-            let subTabs = [];
-
-            if (this.activeTab === 'makanan') {
-                // Makanan: Berat (Main Course), Ringan (Snacks, Dessert)
-                subTabs = ['Berat', 'Ringan'];
-                if (this.activeSubTab === 'Berat') {
-                    filteredProducts = this.products.filter(p => ['Main Course'].includes(p.category));
-                } else if (this.activeSubTab === 'Ringan') {
-                    filteredProducts = this.products.filter(p => ['Snacks', 'Dessert'].includes(p.category));
-                } else {
-                    // Show all food
-                    filteredProducts = this.products.filter(p => ['Main Course', 'Snacks', 'Dessert'].includes(p.category));
-                }
-            } else if (this.activeTab === 'minuman') {
-                // Minuman: Panas (Classic Coffee), Dingin (Signature Coffee, Non-Coffee)
-                subTabs = ['Dingin', 'Panas'];
-                if (this.activeSubTab === 'Panas') {
-                    filteredProducts = this.products.filter(p => ['Classic Coffee'].includes(p.category));
-                } else if (this.activeSubTab === 'Dingin') {
-                    filteredProducts = this.products.filter(p => ['Signature Coffee', 'Non-Coffee'].includes(p.category));
-                } else {
-                    // Show all drinks
-                    filteredProducts = this.products.filter(p => ['Classic Coffee', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
-                }
-            }
-
-            const cartCount = this.cart.reduce((sum, item) => sum + item.quantity, 0);
-            const cartTotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-            const html = `
-                <div style="height:100%; display:flex; flex-direction:column; overflow-y:auto;">
+    renderSplitLayout() {
+        this.container.innerHTML = `
+            <div class="pos-layout">
+                <div class="pos-menu-section">
                     <!-- Tabs -->
-                    <div class="kiosk-tabs">
-                    <button class="kiosk-tab ${this.activeTab === 'all' ? 'active' : ''}"
-                        onclick="pos.setTab('all')">Semua Menu</button>
-                    <button class="kiosk-tab ${this.activeTab === 'makanan' ? 'active' : ''}"
-                        onclick="pos.setTab('makanan')">Makanan</button>
-                    <button class="kiosk-tab ${this.activeTab === 'minuman' ? 'active' : ''}"
-                        onclick="pos.setTab('minuman')">Minuman</button>
-                </div>
-
-                <!-- Sub Tabs -->
-                ${subTabs.length > 0 ? `
-                    <div class="kiosk-subtabs">
-                        <button class="subtab ${this.activeSubTab === 'all' ? 'active' : ''}"
-                            onclick="pos.setSubTab('all')">All</button>
-                        ${subTabs.map(st => `
-                            <button class="subtab ${this.activeSubTab === st ? 'active' : ''}"
-                                onclick="pos.setSubTab('${st}')">${st}</button>
-                        `).join('')}
+                    <div class="category-tabs">
+                        <button class="tab-pill ${this.activeTab === 'all' ? 'active' : ''}" onclick="pos.setTab('all')">All Menu</button>
+                        <button class="tab-pill ${this.activeTab === 'makanan' ? 'active' : ''}" onclick="pos.setTab('makanan')">Food</button>
+                        <button class="tab-pill ${this.activeTab === 'minuman' ? 'active' : ''}" onclick="pos.setTab('minuman')">Drinks</button>
                     </div>
-                ` : ''}
 
-                <!-- Grid -->
-                <div class="kiosk-grid">
-                    ${filteredProducts.map(p => this.renderProductCard(p)).join('')}
-                </div>
+                    <!-- Sub Tabs -->
+                    <div class="sub-tabs-container" id="sub-tabs-area"></div>
 
-                <!-- Bottom Bar -->
-                ${cartCount > 0 ? `
-                    <div class="bottom-bar">
-                        <div>
-                            <div style="font-weight:bold;">${cartCount} Item(s)</div>
-                            <div style="color:var(--kiosk-primary);">Rp ${cartTotal.toLocaleString()}</div>
-                        </div>
-                        <button class="btn-primary-action" style="width:auto;" onclick="pos.setView('cart')">
-                            Pesan Sekarang <i class="fas fa-arrow-right"></i>
-                        </button>
+                    <!-- Grid -->
+                    <div class="product-grid" id="product-grid-area">
+                        <!-- Products injected here -->
                     </div>
-                ` : ''}
                 </div>
+
+                <div class="pos-cart-section">
+                    <div class="cart-header">
+                        <h3>Current Order</h3>
+                        <button class="btn btn-ghost btn-sm" onclick="pos.clearCart()">Clear</button>
+                    </div>
+
+                    <div class="cart-items" id="cart-items-area">
+                        <!-- Cart items injected here -->
+                    </div>
+
+                    <div class="cart-footer" id="cart-footer-area">
+                         <!-- Totals injected here -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.updateMenu();
+        this.updateCart();
+    }
+
+    // --- MENU LOGIC ---
+
+    updateMenu() {
+        const grid = document.getElementById('product-grid-area');
+        const subTabsArea = document.getElementById('sub-tabs-area');
+        if (!grid) return;
+
+        // Subtabs Logic
+        let subTabs = [];
+        if (this.activeTab === 'makanan') subTabs = ['Berat', 'Ringan'];
+        if (this.activeTab === 'minuman') subTabs = ['Dingin', 'Panas'];
+
+        if (subTabs.length > 0) {
+            subTabsArea.innerHTML = `
+                <button class="subtab-pill ${this.activeSubTab === 'all' ? 'active' : ''}" onclick="pos.setSubTab('all')">All</button>
+                ${subTabs.map(st => `
+                    <button class="subtab-pill ${this.activeSubTab === st ? 'active' : ''}" onclick="pos.setSubTab('${st}')">${st}</button>
+                `).join('')}
             `;
-            this.container.innerHTML = html;
-        } catch (e) {
-            console.error("Error in renderMenu:", e);
-            this.container.innerHTML = `<div style="color:red">Error rendering menu: ${e.message}</div>`;
+            subTabsArea.style.display = 'flex';
+        } else {
+            subTabsArea.style.display = 'none';
         }
+
+        // Filtering
+        let filtered = this.products;
+        if (this.activeTab === 'makanan') {
+            if (this.activeSubTab === 'Berat') filtered = filtered.filter(p => p.category === 'Main Course');
+            else if (this.activeSubTab === 'Ringan') filtered = filtered.filter(p => ['Snacks', 'Dessert'].includes(p.category));
+            else filtered = filtered.filter(p => ['Main Course', 'Snacks', 'Dessert'].includes(p.category));
+        } else if (this.activeTab === 'minuman') {
+             if (this.activeSubTab === 'Panas') filtered = filtered.filter(p => p.category === 'Classic Coffee');
+            else if (this.activeSubTab === 'Dingin') filtered = filtered.filter(p => ['Signature Coffee', 'Non-Coffee'].includes(p.category));
+            else filtered = filtered.filter(p => ['Classic Coffee', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
+        }
+
+        grid.innerHTML = filtered.map(p => this.renderProductCard(p)).join('');
     }
 
     renderProductCard(p) {
-        const cartItem = this.cart.find(i => i.id === p.id);
-        const qty = cartItem ? cartItem.quantity : 0;
-
         return `
-            <div class="kiosk-card" onclick="pos.addToCart(${p.id})">
-                ${qty > 0 ? `<div class="qty-badge">${qty}</div>` : ''}
-                <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="card-img" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
-                <div class="card-body">
-                    <div class="card-title">${p.name}</div>
-                    <div class="card-price">Rp ${p.price.toLocaleString()}</div>
-                    <button class="btn-add">
-                        <i class="fas fa-plus"></i>
-                    </button>
+            <div class="pos-card" onclick="pos.addToCart(${p.id})">
+                <div class="pos-card-img" style="background-image: url('${p.image_url || 'https://via.placeholder.com/150'}');"></div>
+                <div class="pos-card-content">
+                    <div class="pos-card-title">${p.name}</div>
+                    <div class="pos-card-price">Rp ${p.price.toLocaleString()}</div>
                 </div>
             </div>
         `;
-    }
-
-    renderCart() {
-        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const tax = subtotal * 0.1;
-        const total = subtotal + tax;
-
-        this.currentTotal = total; // Store for payment
-
-        const html = `
-            <div class="cart-page">
-                <h2><i class="fas fa-shopping-cart"></i> Keranjang Pesanan</h2>
-
-                <div style="flex:1; overflow-y:auto;">
-                    <table class="cart-table">
-                        <thead>
-                            <tr>
-                                <th>Pesanan</th>
-                                <th>Harga</th>
-                                <th>Jumlah</th>
-                                <th>Total</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${this.cart.map(item => `
-                                <tr>
-                                    <td>
-                                        <b>${item.name}</b><br>
-                                        <small>${item.category || ''}</small>
-                                    </td>
-                                    <td>Rp ${item.price.toLocaleString()}</td>
-                                    <td>
-                                        <div class="qty-control">
-                                            <button class="btn-qty" onclick="pos.changeQty(${item.id}, -1)">-</button>
-                                            <span style="margin:0 10px;">${item.quantity}</span>
-                                            <button class="btn-qty" onclick="pos.changeQty(${item.id}, 1)">+</button>
-                                        </div>
-                                    </td>
-                                    <td>Rp ${(item.price * item.quantity).toLocaleString()}</td>
-                                    <td>
-                                        <button class="btn-delete" onclick="pos.changeQty(${item.id}, -${item.quantity})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="cart-summary">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                        <span>Subtotal</span>
-                        <span>Rp ${subtotal.toLocaleString()}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-                        <span>Pajak (10%)</span>
-                        <span>Rp ${tax.toLocaleString()}</span>
-                    </div>
-                    <div class="cart-total" style="display:flex; justify-content:space-between; font-size:1.5rem; font-weight:bold; color:var(--kiosk-primary); margin-bottom:1.5rem;">
-                        <span>Total</span>
-                        <span>Rp ${total.toLocaleString()}</span>
-                    </div>
-
-                    <button class="btn-primary-action" onclick="pos.openPaymentModal()">
-                        Bayar Sekarang
-                    </button>
-                    <button style="margin-top:10px; width:100%; padding:1rem; background:transparent; border:none; color:#888; cursor:pointer;"
-                        onclick="pos.setView('menu')">
-                        Kembali ke Menu
-                    </button>
-                </div>
-            </div>
-        `;
-        this.container.innerHTML = html;
-    }
-
-    renderSuccess() {
-        this.container.innerHTML = `
-            <div class="lobby-container">
-                <div style="width:100px; height:100px; background:var(--kiosk-success); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:3rem; margin-bottom:2rem;">
-                    <i class="fas fa-check"></i>
-                </div>
-                <h1 class="lobby-title">Pembayaran Berhasil</h1>
-                <p style="font-size:1.2rem; margin-bottom:2rem;">Terima Kasih!</p>
-                <button class="btn-huge" onclick="pos.finishOrder()">
-                    Selesai
-                </button>
-            </div>
-        `;
-    }
-
-    // --- LOGIC HANDLERS ---
-
-    setView(view) {
-        this.currentView = view;
-        this.updateView();
     }
 
     setTab(tab) {
         this.activeTab = tab;
         this.activeSubTab = 'all';
-        this.updateView();
+        this.updateMenu();
     }
 
-    setSubTab(subTab) {
-        this.activeSubTab = subTab;
-        this.updateView();
+    setSubTab(st) {
+        this.activeSubTab = st;
+        this.updateMenu();
     }
+
+    // --- CART LOGIC ---
 
     addToCart(id) {
         const product = this.products.find(p => p.id === id);
@@ -289,8 +163,7 @@ class POSView {
         } else {
             this.cart.push({ ...product, quantity: 1 });
         }
-        // Don't full re-render, just update badge? For now full re-render is safer
-        this.updateView();
+        this.updateCart();
     }
 
     changeQty(id, change) {
@@ -300,11 +173,74 @@ class POSView {
             if (item.quantity <= 0) {
                 this.cart = this.cart.filter(i => i.id !== id);
             }
-            this.updateView();
+            this.updateCart();
         }
     }
 
-    // --- PAYMENT LOGIC ---
+    clearCart() {
+        if(confirm("Clear cart?")) {
+            this.cart = [];
+            this.updateCart();
+        }
+    }
+
+    updateCart() {
+        const cartArea = document.getElementById('cart-items-area');
+        const footerArea = document.getElementById('cart-footer-area');
+        if (!cartArea) return;
+
+        if (this.cart.length === 0) {
+            cartArea.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary); opacity:0.5;">
+                    <i class="fas fa-shopping-basket" style="font-size:3rem; margin-bottom:1rem;"></i>
+                    <p>No items added</p>
+                </div>
+            `;
+            footerArea.innerHTML = '';
+            return;
+        }
+
+        // Render Items
+        cartArea.innerHTML = this.cart.map(item => `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-title">${item.name}</div>
+                    <div class="cart-item-price">Rp ${(item.price * item.quantity).toLocaleString()}</div>
+                </div>
+                <div class="cart-item-controls">
+                    <button class="btn-qty-sm" onclick="pos.changeQty(${item.id}, -1)">-</button>
+                    <span>${item.quantity}</span>
+                    <button class="btn-qty-sm" onclick="pos.changeQty(${item.id}, 1)">+</button>
+                </div>
+            </div>
+        `).join('');
+
+        // Render Totals
+        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = subtotal * 0.1;
+        const total = subtotal + tax;
+        this.currentTotal = total;
+
+        footerArea.innerHTML = `
+            <div class="cart-summary-row">
+                <span>Subtotal</span>
+                <span>Rp ${subtotal.toLocaleString()}</span>
+            </div>
+            <div class="cart-summary-row">
+                <span>Tax (10%)</span>
+                <span>Rp ${tax.toLocaleString()}</span>
+            </div>
+            <div class="cart-total-row">
+                <span>Total</span>
+                <span>Rp ${total.toLocaleString()}</span>
+            </div>
+            <button class="btn btn-primary btn-block" style="width:100%; margin-top:1rem; padding: 1rem;" onclick="pos.openPaymentModal()">
+                Process Payment
+            </button>
+        `;
+    }
+
+    // --- PAYMENT MODAL ---
 
     openPaymentModal() {
         const overlay = document.getElementById('modal-overlay');
@@ -312,83 +248,86 @@ class POSView {
         
         container.innerHTML = `
             <div class="modal-header">
-                <h2>Metode Pembayaran</h2>
-                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+                <h2>Select Payment Method</h2>
+                <button class="close-btn" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
             </div>
-            <div style="padding: 20px;">
-                <h3 style="text-align:center; margin-bottom: 20px;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
+            <div class="modal-body">
+                <div style="text-align:center; margin-bottom: 2rem;">
+                    <span style="font-size: 0.9rem; color: var(--text-secondary);">Total Amount</span>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--primary-color);">Rp ${this.currentTotal.toLocaleString()}</div>
+                </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <button class="btn-huge" style="background:#2C3E50" onclick="pos.showCashPayment()">
-                        <i class="fas fa-money-bill-wave"></i><br>Cash
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <button class="payment-method-card" onclick="pos.showCashPayment()">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Cash</span>
                     </button>
-                    <button class="btn-huge" style="background:#2C3E50" onclick="pos.showCashlessPayment()">
-                        <i class="fas fa-qrcode"></i><br>Cashless (QRIS)
+                    <button class="payment-method-card" onclick="pos.showCashlessPayment()">
+                        <i class="fas fa-qrcode"></i>
+                        <span>QRIS</span>
                     </button>
                 </div>
             </div>
         `;
-
         overlay.classList.remove('hidden');
     }
 
     showCashPayment() {
         const container = document.getElementById('modal-container');
         container.innerHTML = `
-             <div class="modal-header">
-                <h2>Pembayaran Tunai (Cash)</h2>
-                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+            <div class="modal-header">
+                <h2>Cash Payment</h2>
+                <button class="close-btn" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
             </div>
-            <div style="padding: 20px;">
-                <h3 style="text-align:center;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
-
-                <div style="margin: 20px 0;">
-                    <label>Nominal Diterima:</label>
-                    <input type="number" id="cash-input" class="form-control" style="width:100%; padding:10px; font-size:1.2rem;" placeholder="Rp 0">
+            <div class="modal-body">
+                <div style="text-align:center; margin-bottom: 2rem;">
+                     <div style="font-size: 2rem; font-weight: 800; color: var(--primary-color);">Rp ${this.currentTotal.toLocaleString()}</div>
                 </div>
 
-                <div id="change-display" style="text-align:center; font-size:1.2rem; font-weight:bold; margin-bottom:20px;">
-                    Kembalian: Rp 0
+                <div class="mb-1">
+                    <label style="font-weight:600;">Cash Received</label>
+                    <input type="number" id="cash-input" style="font-size:1.5rem; font-weight:bold;" placeholder="0" autofocus>
                 </div>
 
-                <button class="btn-primary-action" onclick="pos.processCashPayment()">Bayar</button>
+                <div id="change-display" style="text-align:center; font-size:1.1rem; font-weight:600; margin: 1.5rem 0; min-height: 24px;">
+                    Change: -
+                </div>
+
+                <button class="btn btn-primary" style="width:100%; padding: 1rem;" onclick="pos.processCashPayment()">Complete Order</button>
             </div>
         `;
 
         const input = document.getElementById('cash-input');
+        input.focus();
         input.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value) || 0;
             const change = val - this.currentTotal;
             const disp = document.getElementById('change-display');
             if (change >= 0) {
-                disp.style.color = 'green';
-                disp.textContent = `Kembalian: Rp ${change.toLocaleString()}`;
+                disp.style.color = 'var(--success-color)';
+                disp.textContent = `Change: Rp ${change.toLocaleString()}`;
             } else {
-                disp.style.color = 'red';
-                disp.textContent = `Kurang: Rp ${Math.abs(change).toLocaleString()}`;
+                disp.style.color = 'var(--danger-color)';
+                disp.textContent = `Remaining: Rp ${Math.abs(change).toLocaleString()}`;
             }
         });
-        input.focus();
     }
 
     showCashlessPayment() {
         const container = document.getElementById('modal-container');
-        // Use relative path from where index.html is loaded, or absolute web path if needed.
-        // Since we downloaded it to coffee-shop-app/frontend/img/qris.png, the relative path from index.html is img/qris.png
         container.innerHTML = `
-             <div class="modal-header">
-                <h2>Pembayaran QRIS</h2>
-                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+            <div class="modal-header">
+                <h2>Scan QRIS</h2>
+                <button class="close-btn" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
             </div>
-            <div style="padding: 20px; text-align:center;">
-                <h3 style="margin-bottom: 10px;">Scan untuk Bayar</h3>
-                <img src="img/qris.png" style="width:250px; height:250px; object-fit:contain; border: 1px solid #ccc;" alt="QRIS Code" onerror="this.src='https://via.placeholder.com/250?text=QRIS+Error'">
+            <div class="modal-body" style="text-align:center;">
+                <div style="background:white; padding:1rem; border:1px solid #EEE; display:inline-block; border-radius:12px; margin-bottom:1rem;">
+                    <img src="img/qris.png" style="width:200px; height:200px; object-fit:contain;" onerror="this.src='https://via.placeholder.com/200?text=QRIS'">
+                </div>
+                <p>Scan with your payment app</p>
+                <h3 style="margin: 1rem 0;">Rp ${this.currentTotal.toLocaleString()}</h3>
 
-                <h3 style="margin: 20px 0;">Total: Rp ${this.currentTotal.toLocaleString()}</h3>
-
-                <p style="color:#666; margin-bottom:20px;">Silakan tunjukkan bukti pembayaran ke kasir jika diperlukan.</p>
-
-                <button class="btn-primary-action" onclick="pos.processCashlessPayment()">Konfirmasi Pembayaran</button>
+                <button class="btn btn-primary" style="width:100%; margin-top:1rem;" onclick="pos.processCashlessPayment()">Confirm Payment</button>
             </div>
         `;
     }
@@ -396,18 +335,14 @@ class POSView {
     async processCashPayment() {
         const input = document.getElementById('cash-input');
         const amount = parseFloat(input.value);
-
         if (!amount || amount < this.currentTotal) {
-            alert("Nominal pembayaran kurang!");
+            alert("Insufficient cash!");
             return;
         }
-
         await this.finalizeOrder('Cash', amount);
     }
 
     async processCashlessPayment() {
-        // In a real app, we might check a webhook here.
-        // For now, we assume manual confirmation.
         await this.finalizeOrder('QRIS', this.currentTotal);
     }
 
@@ -421,25 +356,28 @@ class POSView {
 
         try {
             const res = await api.post('/pos/orders', orderData);
-            if (res.error) {
-                alert(res.error);
-                return;
-            }
+            if (res.error) throw new Error(res.error);
 
+            this.renderSuccess();
             document.getElementById('modal-overlay').classList.add('hidden');
-            this.setView('success');
             this.cart = [];
         } catch (err) {
-            alert("Payment failed: " + err.message);
-            console.error(err);
+            alert("Order failed: " + err.message);
         }
     }
 
-    finishOrder() {
-        this.setView('lobby');
-        this.loadData(); // Refresh stock
+    renderSuccess() {
+        // Simple success overlay or toast could be better, but we'll stick to a view or modal.
+        // Let's replace the whole view temporarily.
+        this.container.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; animation: fade-in 0.5s;">
+                <div style="width:80px; height:80px; background:var(--success-color); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; margin-bottom:1.5rem; box-shadow: var(--shadow-md);">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h2 style="margin-bottom:0.5rem;">Payment Successful!</h2>
+                <p style="color:var(--text-secondary); margin-bottom:2rem;">Thank you for your order.</p>
+                <button class="btn btn-primary" onclick="pos.startOrder()">New Order</button>
+            </div>
+        `;
     }
 }
-
-// Expose to global scope
-window.POSView = POSView;
