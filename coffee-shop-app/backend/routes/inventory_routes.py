@@ -12,6 +12,10 @@ def get_products():
 @inventory_bp.route('/products', methods=['POST'])
 def add_product():
     data = request.json
+
+    if data['price'] < 0:
+        return jsonify({'error': 'Price cannot be negative'}), 400
+
     new_product = Product(
         name=data['name'],
         price=data['price'],
@@ -27,6 +31,10 @@ def add_product():
 def update_product(id):
     product = Product.query.get_or_404(id)
     data = request.json
+
+    if 'price' in data and data['price'] < 0:
+        return jsonify({'error': 'Price cannot be negative'}), 400
+
     product.name = data.get('name', product.name)
     product.price = data.get('price', product.price)
     product.stock = data.get('stock', product.stock)
