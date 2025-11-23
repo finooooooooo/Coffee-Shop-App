@@ -10,7 +10,9 @@ class App {
             pos: new POSView(),
             inventory: new InventoryView(),
             reports: new ReportsView(),
-            history: new HistoryView()
+            history: new HistoryView(),
+            kitchen: new KitchenView(),
+            bar: new BarView()
         };
 
         this.init();
