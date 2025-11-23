@@ -3,386 +3,292 @@ class POSView {
         this.cart = [];
         this.products = [];
         this.categories = [];
-        this.activeTab = 'all'; // all, makanan, minuman
+        this.activeTab = 'all';
         this.activeSubTab = 'all';
     }
 
     async render(container) {
         this.container = container;
         window.pos = this;
+        this.renderSplash();
+    }
 
-        // Initial splash screen or direct load
-        this.renderLobby();
+    // --- SCREENS ---
+
+    renderSplash() {
+        this.container.innerHTML = `
+            <div class="splash-container">
+                <div class="splash-box">
+                    <h2 style="font-size:1.5rem; margin-bottom:5px;">WELCOME TO THE</h2>
+                    <h1 style="font-size:3rem; margin:10px 0; font-family:cursive;">Coffee Shop</h1>
+                    <p>Cafe and Restaurant</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px; width:200px;">
+                    <button class="btn btn-primary" onclick="pos.startOrder()">PESAN</button>
+                    <button class="btn btn-primary" style="background:#aaccff;" onclick="alert('Contact info...')">CONTACT</button>
+                </div>
+            </div>
+        `;
     }
 
     async startOrder() {
         await this.loadData();
-        this.renderSplitLayout();
+        this.renderMenuLayout();
     }
 
-    // --- DATA LOADING ---
+    // --- DATA ---
     async loadData() {
         try {
-            const [products, categories] = await Promise.all([
-                api.get('/inventory/products'),
-                api.get('/inventory/categories')
-            ]);
-            this.products = products || [];
-            this.categories = categories || [];
+            // Fetch sorted products from the new backend endpoint
+            const res = await api.get('/pos/products/sorted?sort_by=name&order=asc');
+            this.products = res || [];
         } catch (e) {
-            console.error("Failed to load data", e);
-            alert("Failed to load products. Check connection.");
+            console.error(e);
+            alert("Failed to load products");
         }
     }
 
-    // --- VIEWS ---
-
-    renderLobby() {
+    // --- MENU LAYOUT ---
+    renderMenuLayout() {
         this.container.innerHTML = `
-            <div class="lobby-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
-                <h1 style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--accent-primary);">Welcome</h1>
-                <p style="color: var(--text-secondary); margin-bottom: 3rem; font-size: 1.2rem;">Start a new order to begin</p>
-                <button class="btn" style="padding: 1.2rem 3.5rem; font-size: 1.2rem; border-radius: 50px; background-color: var(--accent-primary); color: #1a1a1a; font-weight: bold;" onclick="pos.startOrder()">
-                    New Order
-                </button>
-            </div>
-        `;
-    }
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Coffee Shop</h1>
+                    <span>Cafe and Restaurant</span>
+                </div>
+                <div style="position:absolute; right:20px;">
+                    <i class="fas fa-bars" style="font-size:1.5rem;"></i>
+                </div>
+            </header>
 
-    renderSplitLayout() {
-        this.container.innerHTML = `
-            <div class="pos-layout">
-                <div class="pos-menu-section" style="padding: 20px;">
-                    <!-- Tabs -->
-                    <div class="category-tabs" style="margin-bottom: 20px; display: flex; gap: 10px;">
-                        <button class="btn ${this.activeTab === 'all' ? 'active-tab' : 'inactive-tab'}" style="flex:1" onclick="pos.setTab('all')">All Menu</button>
-                        <button class="btn ${this.activeTab === 'makanan' ? 'active-tab' : 'inactive-tab'}" style="flex:1" onclick="pos.setTab('makanan')">Food</button>
-                        <button class="btn ${this.activeTab === 'minuman' ? 'active-tab' : 'inactive-tab'}" style="flex:1" onclick="pos.setTab('minuman')">Drinks</button>
+            <div class="menu-layout">
+                <!-- Left: Menu -->
+                <div class="menu-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
+                        <h2 style="margin:0;">Menu</h2>
+                        <span style="font-weight:bold;">CONTACT</span>
+                    </div>
+
+                    <!-- Main Tabs -->
+                    <div class="tabs-container">
+                        <button class="tab-btn ${this.activeTab === 'all' ? 'active' : ''}" onclick="pos.setTab('all')">Semua Menu</button>
+                        <button class="tab-btn ${this.activeTab === 'makanan' ? 'active' : ''}" onclick="pos.setTab('makanan')">Makanan</button>
+                        <button class="tab-btn ${this.activeTab === 'minuman' ? 'active' : ''}" onclick="pos.setTab('minuman')">Minuman</button>
                     </div>
 
                     <!-- Sub Tabs -->
-                    <div class="sub-tabs-container" id="sub-tabs-area" style="margin-bottom: 20px; display:flex; gap:10px; overflow-x:auto;"></div>
+                    <div class="subtabs-container" id="subtabs-area">
+                        <!-- Injected -->
+                    </div>
 
                     <!-- Grid -->
-                    <div class="product-grid" id="product-grid-area" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; padding-bottom: 80px;">
-                        <!-- Products injected here -->
+                    <div class="product-grid" id="product-grid">
+                        <!-- Injected -->
                     </div>
+
+                    <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="pos.openCartMobile()">
+                        Pesan Sekarang (View Cart)
+                    </button>
                 </div>
 
-                <div class="pos-cart-section" style="background-color: var(--bg-sidebar); display:flex; flex-direction:column; border-left: 1px solid rgba(255,255,255,0.05);">
-                    <div class="cart-header" style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="margin:0; color: var(--accent-primary);">Current Order</h3>
-                        <button class="btn" style="background-color: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 5px 10px;" onclick="pos.clearCart()">Clear</button>
+                <!-- Right: Cart (Visible on desktop/tablet) -->
+                <div class="cart-section" id="desktop-cart">
+                    <div class="cart-header">
+                        <h3>Keranjang Pemesanan</h3>
                     </div>
 
-                    <div class="cart-items" id="cart-items-area" style="flex:1; overflow-y:auto; padding: 10px;">
-                        <!-- Cart items injected here -->
+                    <div style="padding:10px; display:grid; grid-template-columns: 2fr 1fr 1fr; font-weight:bold; font-size:0.9rem;">
+                        <span>Pesanan</span>
+                        <span>Harga</span>
+                        <span>Jumlah</span>
                     </div>
 
-                    <div class="cart-footer" id="cart-footer-area" style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); background-color: rgba(0,0,0,0.2);">
-                         <!-- Totals injected here -->
+                    <div class="cart-items" id="cart-items">
+                        <!-- Items -->
+                    </div>
+
+                    <div class="cart-footer">
+                         <div id="cart-totals"></div>
+                         <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="pos.showPayment()">Bayar Sekarang</button>
                     </div>
                 </div>
             </div>
         `;
 
-        this.updateMenu();
-        this.updateCart();
+        this.updateMenuState();
+        this.updateCartUI();
     }
 
-    // --- MENU LOGIC ---
+    // --- UPDATE LOGIC ---
+    updateMenuState() {
+        const subTabsArea = document.getElementById('subtabs-area');
+        const grid = document.getElementById('product-grid');
 
-    updateMenu() {
-        const grid = document.getElementById('product-grid-area');
-        const subTabsArea = document.getElementById('sub-tabs-area');
-        if (!grid) return;
-
-        // Subtabs Logic
+        // Subtabs
         let subTabs = [];
         if (this.activeTab === 'makanan') subTabs = ['Berat', 'Ringan'];
         if (this.activeTab === 'minuman') subTabs = ['Dingin', 'Panas'];
 
         if (subTabs.length > 0) {
-            subTabsArea.innerHTML = `
-                <button class="btn btn-sm ${this.activeSubTab === 'all' ? 'active-subtab' : 'inactive-subtab'}" style="border-radius:20px; padding: 5px 15px;" onclick="pos.setSubTab('all')">All</button>
-                ${subTabs.map(st => `
-                    <button class="btn btn-sm ${this.activeSubTab === st ? 'active-subtab' : 'inactive-subtab'}" style="border-radius:20px; padding: 5px 15px;" onclick="pos.setSubTab('${st}')">${st}</button>
-                `).join('')}
-            `;
+            subTabsArea.innerHTML = subTabs.map(st => `
+                <button class="subtab-btn ${this.activeSubTab === st ? 'active' : ''}" onclick="pos.setSubTab('${st}')">
+                    ${this.activeTab === 'makanan' ? 'Makanan ' : 'Minuman '} ${st}
+                </button>
+            `).join('');
             subTabsArea.style.display = 'flex';
         } else {
             subTabsArea.style.display = 'none';
         }
 
-        // Filtering
+        // Filter Products
         let filtered = this.products;
         if (this.activeTab === 'makanan') {
-            if (this.activeSubTab === 'Berat') filtered = filtered.filter(p => p.category === 'Main Course');
-            else if (this.activeSubTab === 'Ringan') filtered = filtered.filter(p => ['Snacks', 'Dessert'].includes(p.category));
-            else filtered = filtered.filter(p => ['Main Course', 'Snacks', 'Dessert'].includes(p.category));
+            if (this.activeSubTab === 'Berat') filtered = filtered.filter(p => p.category === 'Makanan Berat' || p.category === 'Main Course');
+            else if (this.activeSubTab === 'Ringan') filtered = filtered.filter(p => ['Makanan Ringan', 'Snacks', 'Dessert'].includes(p.category));
+            else filtered = filtered.filter(p => ['Makanan Berat', 'Makanan Ringan', 'Main Course', 'Snacks', 'Dessert'].includes(p.category));
         } else if (this.activeTab === 'minuman') {
-             if (this.activeSubTab === 'Panas') filtered = filtered.filter(p => p.category === 'Classic Coffee');
-            else if (this.activeSubTab === 'Dingin') filtered = filtered.filter(p => ['Signature Coffee', 'Non-Coffee'].includes(p.category));
-            else filtered = filtered.filter(p => ['Classic Coffee', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
+             if (this.activeSubTab === 'Panas') filtered = filtered.filter(p => p.category === 'Minuman Panas' || p.category === 'Classic Coffee');
+            else if (this.activeSubTab === 'Dingin') filtered = filtered.filter(p => ['Minuman Dingin', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
+            else filtered = filtered.filter(p => ['Minuman Panas', 'Minuman Dingin', 'Classic Coffee', 'Signature Coffee', 'Non-Coffee'].includes(p.category));
         }
 
-        grid.innerHTML = filtered.map(p => this.renderProductCard(p)).join('');
+        grid.innerHTML = filtered.map(p => this.renderCard(p)).join('');
     }
 
-    renderProductCard(p) {
-        // Fallback image if none
-        const imgUrl = p.image_url && p.image_url.startsWith('http') ? p.image_url : 'img/americano.jpg'; // Simple fallback
+    renderCard(p) {
+        const imgUrl = p.image_url && p.image_url.startsWith('http') ? p.image_url : 'img/americano.jpg';
+        // Check if item is in cart to show qty badge?
+        const inCart = this.cart.find(i => i.id === p.id);
+        const qtyDisplay = inCart ? `<div style="position:absolute; top:5px; right:5px; background:var(--primary-blue); color:white; border-radius:50%; width:25px; height:25px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${inCart.quantity}</div>` : '';
 
         return `
-            <div class="menu-item" onclick="pos.addToCart(${p.id})" style="cursor:pointer; overflow:hidden; transition: transform 0.2s;">
-                <div style="height: 120px; background-image: url('${imgUrl}'); background-size: cover; background-position: center;"></div>
-                <div style="padding: 10px;">
-                    <div style="font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
-                    <div style="color: var(--accent-primary);">Rp ${p.price.toLocaleString()}</div>
+            <div class="product-card" onclick="pos.addToCart(${p.id})">
+                <div class="product-img" style="background-image: url('${imgUrl}')"></div>
+                ${qtyDisplay}
+                <div class="product-info">
+                    <div style="font-weight:bold; font-size:0.9rem; margin-bottom:5px;">${p.name}</div>
+                    <div style="font-weight:bold;">Rp ${p.price.toLocaleString()}</div>
                 </div>
+                <button class="add-btn">+</button>
             </div>
         `;
     }
 
-    setTab(tab) {
-        this.activeTab = tab;
-        this.activeSubTab = 'all';
-        this.updateMenu();
+    setTab(t) {
+        this.activeTab = t;
+        this.activeSubTab = 'all'; // Reset subtab
+        this.updateMenuState();
     }
 
     setSubTab(st) {
         this.activeSubTab = st;
-        this.updateMenu();
+        this.updateMenuState();
     }
 
-    // --- CART LOGIC ---
-
+    // --- CART ---
     addToCart(id) {
-        const product = this.products.find(p => p.id === id);
-        const existing = this.cart.find(i => i.id === id);
-
-        if (existing) {
-            existing.quantity++;
-        } else {
-            this.cart.push({ ...product, quantity: 1 });
-        }
-        this.updateCart();
+        const p = this.products.find(x => x.id === id);
+        const exist = this.cart.find(x => x.id === id);
+        if(exist) exist.quantity++;
+        else this.cart.push({...p, quantity: 1});
+        this.updateCartUI();
+        this.updateMenuState(); // Update badges
     }
 
-    changeQty(id, change) {
-        const item = this.cart.find(i => i.id === id);
-        if (item) {
-            item.quantity += change;
-            if (item.quantity <= 0) {
-                this.cart = this.cart.filter(i => i.id !== id);
-            }
-            this.updateCart();
-        }
-    }
+    updateCartUI() {
+        const list = document.getElementById('cart-items');
+        const totals = document.getElementById('cart-totals');
 
-    clearCart() {
-        if(confirm("Clear cart?")) {
-            this.cart = [];
-            this.updateCart();
-        }
-    }
+        if(!list) return;
 
-    updateCart() {
-        const cartArea = document.getElementById('cart-items-area');
-        const footerArea = document.getElementById('cart-footer-area');
-        if (!cartArea) return;
-
-        if (this.cart.length === 0) {
-            cartArea.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary); opacity:0.5;">
-                    <i class="fas fa-shopping-basket" style="font-size:3rem; margin-bottom:1rem;"></i>
-                    <p>No items added</p>
-                </div>
-            `;
-            footerArea.innerHTML = '';
-            return;
-        }
-
-        // Render Items
-        cartArea.innerHTML = this.cart.map(item => `
-            <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px;">
-                <div class="cart-item-info">
-                    <div class="cart-item-title" style="font-weight:bold;">${item.name}</div>
-                    <div class="cart-item-price" style="font-size:0.8rem; color: var(--text-muted);">Rp ${(item.price * item.quantity).toLocaleString()}</div>
-                </div>
-                <div class="cart-item-controls" style="display:flex; align-items:center; gap: 10px;">
-                    <button class="btn-qty-sm" style="padding: 2px 8px; border-radius: 4px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); color: white;" onclick="pos.changeQty(${item.id}, -1)">-</button>
-                    <span>${item.quantity}</span>
-                    <button class="btn-qty-sm" style="padding: 2px 8px; border-radius: 4px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); color: white;" onclick="pos.changeQty(${item.id}, 1)">+</button>
-                </div>
+        list.innerHTML = this.cart.map(i => `
+            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:5px; margin-bottom:5px; font-size:0.9rem; align-items:center;">
+                <div>${i.name}</div>
+                <div style="background:#dbeeff; padding:2px 5px; border-radius:5px;">Rp ${i.price.toLocaleString()}</div>
+                <div style="text-align:center; background:#dbeeff; padding:2px 5px; border-radius:5px;">${i.quantity}</div>
             </div>
         `).join('');
 
-        // Render Totals
-        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const tax = subtotal * 0.1;
-        const total = subtotal + tax;
+        const sub = this.cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+        const tax = sub * 0.1;
+        const total = sub + tax;
         this.currentTotal = total;
 
-        footerArea.innerHTML = `
-            <div class="cart-summary-row" style="display:flex; justify-content:space-between; margin-bottom: 5px; color: var(--text-secondary);">
-                <span>Subtotal</span>
-                <span>Rp ${subtotal.toLocaleString()}</span>
+        totals.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span>Pesanan</span> <span>Rp ${sub.toLocaleString()}</span>
             </div>
-            <div class="cart-summary-row" style="display:flex; justify-content:space-between; margin-bottom: 10px; color: var(--text-secondary);">
-                <span>Tax (10%)</span>
-                <span>Rp ${tax.toLocaleString()}</span>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span>Pajak 10%</span> <span>Rp ${tax.toLocaleString()}</span>
             </div>
-            <div class="cart-total-row" style="display:flex; justify-content:space-between; font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; color: var(--accent-primary);">
-                <span>Total</span>
-                <span>Rp ${total.toLocaleString()}</span>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.1rem; background:#dbeeff; padding:5px; border-radius:5px;">
+                <span>Total</span> <span>Rp ${total.toLocaleString()}</span>
             </div>
-            <button class="btn" style="width:100%; padding: 1rem; font-size: 1.1rem; background-color: var(--accent-primary); color: #1a1a1a; font-weight:bold;" onclick="pos.openPaymentModal()">
-                Process Payment
-            </button>
         `;
     }
 
-    // --- PAYMENT MODAL ---
+    openCartMobile() {
+        // Just scroll to cart or show modal if mobile (omitted for simplicity, assuming desktop layout mainly)
+        document.getElementById('desktop-cart').scrollIntoView({behavior: 'smooth'});
+    }
 
-    openPaymentModal() {
-        const overlay = document.getElementById('modal-overlay');
+    // --- PAYMENT ---
+    showPayment() {
+        if(this.cart.length === 0) return alert("Cart is empty");
+
         const container = document.getElementById('modal-container');
-        
+        document.getElementById('modal-overlay').classList.remove('hidden');
+
         container.innerHTML = `
-            <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom: 20px;">
-                <h2 style="margin:0;">Select Payment Method</h2>
-                <button class="close-btn" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="text-align:center; margin-bottom: 2rem;">
-                    <span style="font-size: 0.9rem; color: var(--text-secondary);">Total Amount</span>
-                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--accent-primary);">Rp ${this.currentTotal.toLocaleString()}</div>
+            <h2>Metode Pembayaran</h2>
+            <div style="text-align:left; margin:20px 0;">
+                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                    <span>E-Wallet (Dana/GoPay)</span>
                 </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <button class="payment-method-card" style="padding: 30px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; color: white;" onclick="pos.showCashPayment()">
-                        <i class="fas fa-money-bill-wave" style="font-size: 2rem; margin-bottom: 10px; display:block;"></i>
-                        <span>Cash</span>
-                    </button>
-                    <button class="payment-method-card" style="padding: 30px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; color: white;" onclick="pos.showCashlessPayment()">
-                        <i class="fas fa-qrcode" style="font-size: 2rem; margin-bottom: 10px; display:block;"></i>
-                        <span>QRIS</span>
-                    </button>
+                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                    <span>Kartu Kredit/Debit (VISA)</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; background:#eef; cursor:pointer;" onclick="pos.processPayment()">
+                    <span>QRIS / Cash</span>
+                    <i class="fas fa-check"></i>
                 </div>
             </div>
-        `;
-        overlay.classList.remove('hidden');
-    }
-
-    showCashPayment() {
-        const container = document.getElementById('modal-container');
-        container.innerHTML = `
-            <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom: 20px;">
-                <h2 style="margin:0;">Cash Payment</h2>
-                <button class="close-btn" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="text-align:center; margin-bottom: 2rem;">
-                     <div style="font-size: 2.5rem; font-weight: 800; color: var(--accent-primary);">Rp ${this.currentTotal.toLocaleString()}</div>
-                </div>
-
-                <div class="mb-1" style="margin-bottom: 15px;">
-                    <label style="font-weight:600; display:block; margin-bottom: 5px;">Cash Received</label>
-                    <input type="number" id="cash-input" style="width: 100%; font-size:1.5rem; font-weight:bold; background: var(--bg-primary); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;" placeholder="0" autofocus>
-                </div>
-
-                <div id="change-display" style="text-align:center; font-size:1.2rem; font-weight:600; margin: 1.5rem 0; min-height: 24px;">
-                    Change: -
-                </div>
-
-                <button class="btn" style="width:100%; padding: 1rem; font-size:1.1rem; background-color: var(--accent-primary); color: #1a1a1a; font-weight:bold;" onclick="pos.processCashPayment()">Complete Order</button>
-            </div>
-        `;
-
-        const input = document.getElementById('cash-input');
-        input.focus();
-        input.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value) || 0;
-            const change = val - this.currentTotal;
-            const disp = document.getElementById('change-display');
-            if (change >= 0) {
-                disp.style.color = 'var(--success)';
-                disp.textContent = `Change: Rp ${change.toLocaleString()}`;
-            } else {
-                disp.style.color = 'var(--danger)';
-                disp.textContent = `Remaining: Rp ${Math.abs(change).toLocaleString()}`;
-            }
-        });
-    }
-
-    showCashlessPayment() {
-        const container = document.getElementById('modal-container');
-        container.innerHTML = `
-            <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom: 20px;">
-                <h2 style="margin:0;">Scan QRIS</h2>
-                <button class="close-btn" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
-            </div>
-            <div class="modal-body" style="text-align:center;">
-                <div style="background:white; padding:1rem; border:1px solid #EEE; display:inline-block; border-radius:12px; margin-bottom:1rem;">
-                    <img src="img/qris.png" style="width:200px; height:200px; object-fit:contain;" onerror="this.src='https://via.placeholder.com/200?text=QRIS'">
-                </div>
-                <p>Scan with your payment app</p>
-                <h3 style="margin: 1rem 0; color: var(--accent-primary);">Rp ${this.currentTotal.toLocaleString()}</h3>
-
-                <button class="btn" style="width:100%; margin-top:1rem; padding: 1rem; background-color: var(--accent-primary); color: #1a1a1a; font-weight:bold;" onclick="pos.processCashlessPayment()">Confirm Payment</button>
-            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="pos.processPayment()">Bayar Sekarang</button>
         `;
     }
 
-    async processCashPayment() {
-        const input = document.getElementById('cash-input');
-        const amount = parseFloat(input.value);
-        if (!amount || amount < this.currentTotal) {
-            alert("Insufficient cash!");
-            return;
-        }
-        await this.finalizeOrder('Cash', amount);
-    }
-
-    async processCashlessPayment() {
-        await this.finalizeOrder('QRIS', this.currentTotal);
-    }
-
-    async finalizeOrder(method, received) {
+    async processPayment() {
+        // Simplified flow: Assume success immediately for "Bayar Sekarang"
         const orderData = {
             total_amount: this.currentTotal,
-            payment_method: method,
-            payment_received: received,
+            payment_method: 'Cash', // Defaulting for simplicity
+            payment_received: this.currentTotal,
             items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
         };
 
         try {
             const res = await api.post('/pos/orders', orderData);
-            if (res.error) throw new Error(res.error);
-
-            this.renderSuccess();
-            // Hide modal after a delay or let renderSuccess handle it
-            setTimeout(() => {
-                document.getElementById('modal-overlay').classList.add('hidden');
-                this.cart = [];
-                this.startOrder(); // Go back to new order automatically
-            }, 3000);
-
-        } catch (err) {
-            alert("Order failed: " + err.message);
+            if(res.error) throw new Error(res.error);
+            this.renderSuccess(res.order_id);
+        } catch(e) {
+            alert("Error: " + e.message);
         }
     }
 
-    renderSuccess() {
+    renderSuccess(orderId) {
         const container = document.getElementById('modal-container');
         container.innerHTML = `
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; animation: fade-in 0.5s; padding: 40px;">
-                <div style="width:80px; height:80px; background:var(--success); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#1a1a1a; font-size:2.5rem; margin-bottom:1.5rem; box-shadow: var(--shadow-md);">
-                    <i class="fas fa-check"></i>
+            <div style="padding:20px;">
+                <h2 style="margin-bottom:10px;">Pembayaran Berhasil</h2>
+                <h3 style="margin-top:0;">Terima Kasih</h3>
+
+                <div style="margin: 30px 0;">
+                    <i class="fas fa-check-circle" style="font-size: 6rem; color: #76c720;"></i>
                 </div>
-                <h2 style="margin-bottom:0.5rem;">Payment Successful!</h2>
-                <p style="color:var(--text-secondary); margin-bottom:2rem;">Thank you for your order.</p>
+
+                <p>Order ID: ${orderId}</p>
+
+                <button class="btn btn-primary" style="font-size:1.5rem; padding: 15px 40px;" onclick="location.reload()">Selesai</button>
             </div>
         `;
     }
