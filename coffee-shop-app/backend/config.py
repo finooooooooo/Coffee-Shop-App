@@ -21,7 +21,7 @@ class Config:
         db_port = os.environ.get('DB_PORT')
 
         if all([db_host, db_user, db_password, db_name, db_port]):
-            database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            database_url = f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
         else:
              database_url = 'sqlite:///' + db_path
 
