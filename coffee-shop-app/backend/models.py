@@ -71,16 +71,27 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     customer_name = db.Column(db.String(100), nullable=True)
     table_number = db.Column(db.String(20), nullable=True)
+
+    # New fields for Kitchen/Bar tracking
+    kitchen_status = db.Column(db.String(20), default='pending')  # pending, preparing, completed, none
+    bar_status = db.Column(db.String(20), default='pending')      # pending, preparing, completed, none
+
+    # Daily order sequence (P001, etc.)
+    daily_order_number = db.Column(db.Integer, default=0)
+
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
     def to_dict(self):
         return {
             'id': self.id,
+            'order_id': f"P{self.daily_order_number:03d}" if self.daily_order_number else f"P{self.id:03d}",
             'total_amount': self.total_amount,
             'payment_method': self.payment_method,
             'created_at': self.created_at.isoformat(),
             'customer_name': self.customer_name,
             'table_number': self.table_number,
+            'kitchen_status': self.kitchen_status,
+            'bar_status': self.bar_status,
             'items': [item.to_dict() for item in self.items]
         }
 

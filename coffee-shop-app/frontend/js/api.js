@@ -31,3 +31,5 @@ const api = {
         return res.json();
     }
 };
+
+window.api = api;
