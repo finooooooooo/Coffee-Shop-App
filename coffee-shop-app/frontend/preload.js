@@ -46,6 +46,34 @@ contextBridge.exposeInMainWorld(
                 console.error("API POST Error:", error);
                 throw error;
             }
+        },
+        put: async (url, data) => {
+             try {
+                const baseURL = 'http://localhost:5000/api';
+                const fullURL = url.startsWith('/') ? `${baseURL}${url}` : url;
+                const response = await axios.put(fullURL, data);
+                return response.data;
+            } catch (error) {
+                if (error.response && error.response.data) {
+                    return { error: error.response.data.error || 'Unknown Error' };
+                }
+                console.error("API PUT Error:", error);
+                throw error;
+            }
+        },
+        delete: async (url) => {
+             try {
+                const baseURL = 'http://localhost:5000/api';
+                const fullURL = url.startsWith('/') ? `${baseURL}${url}` : url;
+                const response = await axios.delete(fullURL);
+                return response.data;
+            } catch (error) {
+                if (error.response && error.response.data) {
+                    return { error: error.response.data.error || 'Unknown Error' };
+                }
+                console.error("API DELETE Error:", error);
+                throw error;
+            }
         }
     }
 );
