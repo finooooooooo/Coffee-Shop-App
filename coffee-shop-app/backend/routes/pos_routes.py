@@ -32,8 +32,30 @@ def get_products_sorted():
 @pos_bp.route('/orders', methods=['GET'])
 def get_orders_history():
     # Simple history: Last 50 orders, descending
-    orders = Order.query.order_by(Order.created_at.desc()).limit(50).all()
+    # Only show orders that have NOT been cleared yet
+    orders = Order.query.filter_by(is_cleared=False).order_by(Order.created_at.desc()).limit(50).all()
     return jsonify([o.to_dict() for o in orders])
+
+@pos_bp.route('/history/clear', methods=['POST'])
+def clear_history():
+    """
+    Marks all currently uncleared orders (or specific ones) as cleared.
+    These orders will then appear in Reports.
+    """
+    try:
+        # Update all orders where is_cleared is False
+        # In a real app, you might want to filter by date or specific IDs
+        orders = Order.query.filter_by(is_cleared=False).all()
+        count = 0
+        for order in orders:
+            order.is_cleared = True
+            count += 1
+
+        db.session.commit()
+        return jsonify({'message': f'Successfully cleared {count} orders.', 'count': count})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 def generate_struct_file(order):
     """

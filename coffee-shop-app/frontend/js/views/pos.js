@@ -10,25 +10,8 @@ class POSView {
     async render(container) {
         this.container = container;
         window.pos = this;
-        this.renderSplash();
-    }
-
-    // --- SCREENS ---
-
-    renderSplash() {
-        this.container.innerHTML = `
-            <div class="splash-container">
-                <div class="splash-box">
-                    <h2 style="font-size:1.5rem; margin-bottom:5px;">WELCOME TO THE</h2>
-                    <h1 style="font-size:3rem; margin:10px 0; font-family:cursive;">Coffee Shop</h1>
-                    <p>Cafe and Restaurant</p>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:10px; width:200px;">
-                    <button class="btn btn-primary" onclick="pos.startOrder()">PESAN</button>
-                    <button class="btn btn-primary" style="background:#aaccff;" onclick="alert('Contact info...')">CONTACT</button>
-                </div>
-            </div>
-        `;
+        // Skip splash, start order immediately
+        this.startOrder();
     }
 
     async startOrder() {
@@ -241,6 +224,12 @@ class POSView {
 
         container.innerHTML = `
             <h2>Metode Pembayaran</h2>
+
+            <div style="margin: 15px 0;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">Nama Pelanggan:</label>
+                <input type="text" id="customer-name" placeholder="Masukan Nama Pelanggan" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">
+            </div>
+
             <div style="text-align:left; margin:20px 0;">
                 <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
                     <span>E-Wallet (Dana/GoPay)</span>
@@ -258,11 +247,17 @@ class POSView {
     }
 
     async processPayment() {
+        const customerName = document.getElementById('customer-name').value;
+        if (!customerName || customerName.trim() === '') {
+            return alert("Silakan masukan nama pelanggan!");
+        }
+
         // Simplified flow: Assume success immediately for "Bayar Sekarang"
         const orderData = {
             total_amount: this.currentTotal,
             payment_method: 'Cash', // Defaulting for simplicity
             payment_received: this.currentTotal,
+            customer_name: customerName,
             items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
         };
 

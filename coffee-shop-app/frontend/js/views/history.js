@@ -3,9 +3,9 @@ class HistoryView {
         const html = `
             <div class="inventory-container">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h2>Order History (Last 50)</h2>
-                    <button class="btn btn-danger" onclick="app.views.history.closeShift()">
-                        <i class="fas fa-file-invoice-dollar"></i> Close Shift / Reset
+                    <h2>Order History (Uncleared)</h2>
+                    <button class="btn btn-danger" onclick="app.views.history.clearHistory()">
+                        <i class="fas fa-check-double"></i> Clear History & Send to Reports
                     </button>
                 </div>
                 <table>
@@ -61,19 +61,16 @@ class HistoryView {
         `}).join('');
     }
 
-    async closeShift() {
-        if (!confirm("Are you sure you want to Close Shift? This will generate a report and reset the view.")) return;
+    async clearHistory() {
+        if (!confirm("Are you sure you want to Clear History? This will move all current orders to Reports.")) return;
 
         try {
-            const report = await window.api.post('/pos/shift/close', {});
-            alert(`Shift Closed!\nTotal Revenue: Rp ${report.total_revenue.toLocaleString()}\nTotal Orders: ${report.total_orders}`);
-            // Since our backend logic for "history" just pulls the last 50 orders regardless of shift (it was requested to be simple),
-            // and P001 resets daily, the "Reset" here is mostly symbolic or for the report.
-            // If we want to clear the table, we can just reload.
+            const res = await window.api.post('/pos/history/clear', {});
+            alert(res.message);
             await this.loadHistory();
         } catch (error) {
-            console.error("Error closing shift:", error);
-            alert("Failed to close shift.");
+            console.error("Error clearing history:", error);
+            alert("Failed to clear history.");
         }
     }
 }

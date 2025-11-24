@@ -22,8 +22,8 @@ def dashboard_stats():
 
 @report_bp.route('/transactions', methods=['GET'])
 def transaction_history():
-    # Get all orders, ordered by date
-    orders = Order.query.order_by(desc(Order.created_at)).limit(100).all() # Limit 100 for performance
+    # Get all orders that have been CLEARED, ordered by date
+    orders = Order.query.filter_by(is_cleared=True).order_by(desc(Order.created_at)).limit(100).all()
     return jsonify([o.to_dict() for o in orders])
 
 @report_bp.route('/sales', methods=['GET'])
