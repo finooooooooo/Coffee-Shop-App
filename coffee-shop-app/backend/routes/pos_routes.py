@@ -36,10 +36,39 @@ def get_orders_history():
     orders = Order.query.filter_by(is_cleared=False).order_by(Order.created_at.desc()).limit(50).all()
     return jsonify([o.to_dict() for o in orders])
 
+@pos_bp.route('/history/print-report', methods=['POST'])
+def print_report_and_clear():
+    """
+    Generates a report for all uncleared orders, saves it, and then clears the history.
+    """
+    try:
+        orders = Order.query.filter_by(is_cleared=False).order_by(Order.created_at.asc()).all()
+
+        if not orders:
+            return jsonify({'message': 'No active orders to report.', 'count': 0})
+
+        # Generate Report File
+        report_path = generate_report_file(orders)
+
+        # Clear Orders
+        count = 0
+        for order in orders:
+            order.is_cleared = True
+            count += 1
+
+        db.session.commit()
+
+        msg = f"Report generated at {report_path}. {count} orders cleared."
+        return jsonify({'message': msg, 'count': count, 'report_path': report_path})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @pos_bp.route('/history/clear', methods=['POST'])
 def clear_history():
     """
-    Marks all currently uncleared orders (or specific ones) as cleared.
+    Legacy endpoint: Marks all currently uncleared orders (or specific ones) as cleared.
     These orders will then appear in Reports.
     """
     try:
@@ -59,16 +88,16 @@ def clear_history():
 
 def generate_struct_file(order):
     """
-    Generates a receipt text file in the backend/Struct directory.
-    Format: Struct_P-XXX_Timestamp.txt
+    Generates a receipt text file in the backend/receipts directory.
+    Format: Receipt_P-XXX_Timestamp.txt
     """
     try:
-        struct_dir = os.path.join(os.getcwd(), 'backend', 'Struct') # Assumes running from root
+        struct_dir = os.path.join(os.getcwd(), 'backend', 'receipts') # Assumes running from root
         if not os.path.exists(struct_dir):
             os.makedirs(struct_dir)
 
         order_id_str = f"P-{order.daily_order_number:03d}"
-        filename = f"Struct_{order_id_str}_{int(datetime.now().timestamp())}.txt"
+        filename = f"Receipt_{order_id_str}_{int(datetime.now().timestamp())}.txt"
         filepath = os.path.join(struct_dir, filename)
 
         with open(filepath, 'w') as f:
@@ -77,6 +106,7 @@ def generate_struct_file(order):
             f.write("========================================\n")
             f.write(f"Order ID: {order_id_str}\n")
             f.write(f"Date:     {order.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            # Customer name removed from display request, but keeping 'Walk-in' as fallback if empty
             f.write(f"Customer: {order.customer_name or 'Walk-in'}\n")
             f.write("----------------------------------------\n")
             f.write(f"{'Item':<20} {'Qty':<5} {'Price':>10}\n")
@@ -91,9 +121,45 @@ def generate_struct_file(order):
             f.write("          THANK YOU FOR VISITING        \n")
             f.write("========================================\n")
 
-        print(f"Struct generated: {filepath}")
+        print(f"Receipt generated: {filepath}")
     except Exception as e:
-        print(f"Error generating struct file: {e}")
+        print(f"Error generating receipt file: {e}")
+
+def generate_report_file(orders):
+    """
+    Generates a summary report of the given orders to backend/reports.
+    """
+    try:
+        report_dir = os.path.join(os.getcwd(), 'backend', 'reports')
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir)
+
+        filename = f"Report_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.txt"
+        filepath = os.path.join(report_dir, filename)
+
+        total_revenue = sum(o.total_amount for o in orders)
+
+        with open(filepath, 'w') as f:
+            f.write("========================================\n")
+            f.write("            SESSION REPORT              \n")
+            f.write("========================================\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Total Orders: {len(orders)}\n")
+            f.write(f"Total Revenue: Rp {total_revenue:,.0f}\n")
+            f.write("----------------------------------------\n")
+            f.write(f"{'Order ID':<10} {'Time':<10} {'Total':>15}\n")
+            f.write("----------------------------------------\n")
+            for o in orders:
+                 # Safely handle potentially None values if any
+                oid = f"P-{o.daily_order_number:03d}" if o.daily_order_number else str(o.id)
+                time_str = o.created_at.strftime('%H:%M')
+                f.write(f"{oid:<10} {time_str:<10} {o.total_amount:>15,.0f}\n")
+            f.write("========================================\n")
+
+        return filepath
+    except Exception as e:
+        print(f"Error generating report: {e}")
+        return None
 
 @pos_bp.route('/orders', methods=['POST'])
 def create_order():

@@ -14,8 +14,8 @@ class HistoryView {
             <div class="inventory-container" style="padding: 20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2>Order History (Uncleared)</h2>
-                    <button class="btn btn-danger" onclick="app.views.history.clearHistory()">
-                        <i class="fas fa-check-double"></i> Clear History & Send to Reports
+                    <button class="btn btn-danger" onclick="app.views.history.printReport()">
+                        <i class="fas fa-print"></i> Print Report & Clear
                     </button>
                 </div>
                 <table>
@@ -71,16 +71,16 @@ class HistoryView {
         `}).join('');
     }
 
-    async clearHistory() {
-        if (!confirm("Are you sure you want to Clear History? This will move all current orders to Reports.")) return;
+    async printReport() {
+        if (!confirm("Are you sure you want to Print Report? This will generate a summary file and CLEAR the current history.")) return;
 
         try {
-            const res = await window.api.post('/pos/history/clear', {});
+            const res = await window.api.post('/pos/history/print-report', {});
             alert(res.message);
             await this.loadHistory();
         } catch (error) {
-            console.error("Error clearing history:", error);
-            alert("Failed to clear history.");
+            console.error("Error printing report:", error);
+            alert("Failed to print report: " + error.message);
         }
     }
 }
