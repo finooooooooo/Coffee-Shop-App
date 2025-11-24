@@ -222,42 +222,80 @@ class POSView {
         const container = document.getElementById('modal-container');
         document.getElementById('modal-overlay').classList.remove('hidden');
 
+        // Default state
+        this.selectedPaymentMethod = 'Cash';
+
         container.innerHTML = `
             <h2>Metode Pembayaran</h2>
 
-            <div style="margin: 15px 0;">
-                <label style="display:block; margin-bottom:5px; font-weight:bold;">Nama Pelanggan:</label>
-                <input type="text" id="customer-name" placeholder="Masukan Nama Pelanggan" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">
+            <div style="margin: 20px 0; text-align: center;">
+                 <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
+                    <button class="btn" id="btn-cash" style="background:var(--primary-blue); color:white; min-width:100px;" onclick="pos.setPaymentMethod('Cash')">Cash</button>
+                    <button class="btn" id="btn-qris" style="background:#eee; color:#333; min-width:100px;" onclick="pos.setPaymentMethod('QRIS')">QRIS</button>
+                 </div>
+
+                 <div id="payment-content" style="min-height: 150px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                    <!-- Content injected by setPaymentMethod -->
+                 </div>
             </div>
 
-            <div style="text-align:left; margin:20px 0;">
-                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
-                    <span>E-Wallet (Dana/GoPay)</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
-                    <span>Kartu Kredit/Debit (VISA)</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; background:#eef; cursor:pointer;" onclick="pos.processPayment()">
-                    <span>QRIS / Cash</span>
-                    <i class="fas fa-check"></i>
-                </div>
-            </div>
             <button class="btn btn-primary" style="width:100%;" onclick="pos.processPayment()">Bayar Sekarang</button>
         `;
+
+        // Initialize
+        this.setPaymentMethod('Cash');
+    }
+
+    setPaymentMethod(method) {
+        this.selectedPaymentMethod = method;
+
+        // Toggle active button styles
+        const btnCash = document.getElementById('btn-cash');
+        const btnQris = document.getElementById('btn-qris');
+
+        if(method === 'Cash') {
+            btnCash.style.background = 'var(--primary-blue)';
+            btnCash.style.color = 'white';
+            btnQris.style.background = '#eee';
+            btnQris.style.color = '#333';
+
+            document.getElementById('payment-content').innerHTML = `
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">Jumlah Pembayaran (Rp)</label>
+                <input type="number" id="payment-amount" value="${this.currentTotal}" style="width:200px; padding:10px; font-size:1.2rem; text-align:center; border:1px solid #ddd; border-radius:5px;">
+            `;
+        } else {
+            btnQris.style.background = 'var(--primary-blue)';
+            btnQris.style.color = 'white';
+            btnCash.style.background = '#eee';
+            btnCash.style.color = '#333';
+
+            document.getElementById('payment-content').innerHTML = `
+                <img src="img/qris.png" alt="QRIS Code" style="max-width:200px; border-radius:10px;">
+                <p style="margin-top:10px; font-weight:bold;">Scan to Pay</p>
+            `;
+        }
     }
 
     async processPayment() {
-        const customerName = document.getElementById('customer-name').value;
-        if (!customerName || customerName.trim() === '') {
-            return alert("Silakan masukan nama pelanggan!");
+        let paymentReceived = 0;
+
+        if (this.selectedPaymentMethod === 'Cash') {
+            const input = document.getElementById('payment-amount');
+            if(input) paymentReceived = parseFloat(input.value);
+
+            if (isNaN(paymentReceived) || paymentReceived < this.currentTotal) {
+                return alert(`Pembayaran kurang! Total: ${this.currentTotal.toLocaleString()}`);
+            }
+        } else {
+            // QRIS assumed exact payment
+            paymentReceived = this.currentTotal;
         }
 
-        // Simplified flow: Assume success immediately for "Bayar Sekarang"
         const orderData = {
             total_amount: this.currentTotal,
-            payment_method: 'Cash', // Defaulting for simplicity
-            payment_received: this.currentTotal,
-            customer_name: customerName,
+            payment_method: this.selectedPaymentMethod,
+            payment_received: paymentReceived,
+            customer_name: null, // Removed as per requirement
             items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
         };
 
