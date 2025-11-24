@@ -5,10 +5,20 @@ class InventoryView {
 
     async render(container) {
         const html = `
-            <div class="inventory-container fade-in">
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Admin Dashboard</h1>
+                    <span>Inventory Management</span>
+                </div>
+                <div style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
+                    <i class="fas fa-bars" style="font-size:1.5rem;"></i>
+                </div>
+            </header>
+
+            <div class="inventory-container fade-in" style="padding: 20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
                     <div>
-                        <h2>Inventory Management</h2>
+                        <h2>Products</h2>
                         <p style="color:var(--text-secondary); font-size: 0.9rem;">Manage your products and stock levels</p>
                     </div>
                     <button class="btn btn-primary" onclick="inventory.openAddModal()">
