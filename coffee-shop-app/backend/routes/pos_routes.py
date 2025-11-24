@@ -80,11 +80,7 @@ def create_order():
     calculated_total = 0.0
     order_items_data = []
 
-    has_bar_items = False
-    has_kitchen_items = False
-
-    bar_categories = ["Classic Coffee", "Signature Coffee", "Non-Coffee", "Minuman Dingin", "Minuman Panas"]
-    kitchen_categories = ["Snacks", "Main Course", "Dessert", "Makanan Berat", "Makanan Ringan"]
+    # Kitchen/Bar logic removed, simplified statuses to 'none'
 
     for item in data['items']:
         product = db.session.get(Product, item['id'])
@@ -98,12 +94,6 @@ def create_order():
 
             subtotal = item['quantity'] * product.price
             calculated_total += subtotal
-
-            cat_name = product.category.name if product.category else ""
-            if cat_name in bar_categories:
-                has_bar_items = True
-            elif cat_name in kitchen_categories:
-                has_kitchen_items = True
 
             order_items_data.append({
                 'product': product,
@@ -131,8 +121,8 @@ def create_order():
         customer_name=data.get('customer_name'),
         table_number=data.get('table_number'),
         daily_order_number=new_daily_number,
-        kitchen_status='pending' if has_kitchen_items else 'none',
-        bar_status='pending' if has_bar_items else 'none'
+        kitchen_status='none', # Kitchen display removed
+        bar_status='none'      # Bar display removed
     )
 
     db.session.add(new_order)
@@ -156,16 +146,6 @@ def create_order():
     generate_struct_file(new_order)
 
     return jsonify(new_order.to_dict()), 201
-
-@pos_bp.route('/kitchen/orders', methods=['GET'])
-def get_kitchen_orders():
-    orders = Order.query.filter(Order.kitchen_status.in_(['pending', 'preparing'])).order_by(Order.created_at).all()
-    return jsonify([o.to_dict() for o in orders])
-
-@pos_bp.route('/bar/orders', methods=['GET'])
-def get_bar_orders():
-    orders = Order.query.filter(Order.bar_status.in_(['pending', 'preparing'])).order_by(Order.created_at).all()
-    return jsonify([o.to_dict() for o in orders])
 
 @pos_bp.route('/orders/<int:order_id>/status', methods=['POST'])
 def update_order_status(order_id):

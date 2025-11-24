@@ -10,12 +10,10 @@ class App {
             pos: new POSView(),
             inventory: new InventoryView(),
             reports: new ReportsView(),
-            history: new HistoryView(),
-            kitchen: new KitchenView(),
-            bar: new BarView()
+            history: new HistoryView()
         };
 
-        // Sync Login State across windows
+        // Sync Login State across windows (if any other windows existed)
         window.addEventListener('storage', (event) => {
             if (event.key === 'user' || event.key === 'userRole') {
                 if (localStorage.getItem('user')) {
@@ -32,9 +30,6 @@ class App {
     }
 
     async init(isLoggedIn) {
-        // Check for specific Window Hash (Kitchen/Bar)
-        const hash = window.location.hash.replace('#', '');
-
         // Check if already logged in (simple persistence)
         if (isLoggedIn === undefined) {
             const storedRole = localStorage.getItem('userRole');
@@ -47,28 +42,6 @@ class App {
             } else {
                 isLoggedIn = false;
             }
-        }
-
-        // Dedicated Display Logic (Kitchen/Bar)
-        if (hash === 'kitchen' || hash === 'bar') {
-            // Hide sidebar and header permanently for these views
-            const header = document.getElementById('kiosk-header');
-            const sidebar = document.getElementById('app-sidebar');
-            if (header) header.style.display = 'none';
-            if (sidebar) sidebar.style.display = 'none';
-            document.body.classList.add('display-mode'); // New class for full width
-
-            // If not logged in, wait or show placeholder?
-            // For now, we'll try to navigate. If blocked by Auth Guard, it goes to login.
-            // But for a multi-window setup, we want them to "just work" if the main one is logged in.
-            if (isLoggedIn) {
-                await this.navigate(hash);
-            } else {
-                // If not logged in, maybe show a "Waiting for Login" screen instead of the interactive login form?
-                // Or just show login form but hidden sidebar.
-                await this.navigate('login');
-            }
-            return;
         }
 
         // Standard Logic (POS/Admin)
@@ -114,15 +87,6 @@ class App {
     }
 
     async navigate(page) {
-        // Auth Guard
-        // Allow 'login' always.
-        // If we are in 'kitchen' or 'bar' mode (hash), strictly allow only that page + login.
-        const hash = window.location.hash.replace('#', '');
-        if (hash && (hash === 'kitchen' || hash === 'bar') && page !== 'login' && page !== hash) {
-            // Force back to the hash view if attempting to navigate away in display mode
-            return this.navigate(hash);
-        }
-
         if (page !== 'login' && !this.userRole) {
             return this.navigate('login');
         }
@@ -143,10 +107,6 @@ class App {
             if (header) header.classList.add('hidden');
             if (sidebar) sidebar.classList.add('hidden');
             document.body.classList.remove('kiosk-mode');
-        } else if (page === 'kitchen' || page === 'bar') {
-             if (header) header.classList.add('hidden');
-             if (sidebar) sidebar.classList.add('hidden');
-             document.body.classList.add('display-mode');
         } else {
             // Admin pages
             if (header) header.classList.add('hidden');
@@ -167,11 +127,6 @@ class App {
             // Clear current view
             this.mainView.innerHTML = '';
             await view.render(this.mainView);
-
-            // If it's Kitchen/Bar view, start polling
-            if (page === 'kitchen' && view.startPolling) view.startPolling();
-            if (page === 'bar' && view.startPolling) view.startPolling();
-
         } else {
             console.error("View not found:", page);
         }
