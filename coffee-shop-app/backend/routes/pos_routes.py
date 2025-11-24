@@ -89,6 +89,8 @@ def create_order():
     for item in data['items']:
         product = db.session.get(Product, item['id'])
         if product:
+            if not product.is_active:
+                return jsonify({'error': f"Product '{product.name}' is no longer available"}), 400
             if item['quantity'] <= 0:
                 return jsonify({'error': f"Invalid quantity for product '{product.name}'. Must be > 0"}), 400
             if product.stock < item['quantity']:
