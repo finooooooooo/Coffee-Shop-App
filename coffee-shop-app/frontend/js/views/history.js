@@ -1,7 +1,17 @@
 class HistoryView {
     async render(container) {
         const html = `
-            <div class="inventory-container">
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Admin Dashboard</h1>
+                    <span>Order History</span>
+                </div>
+                <div style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
+                    <i class="fas fa-bars" style="font-size:1.5rem;"></i>
+                </div>
+            </header>
+
+            <div class="inventory-container" style="padding: 20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2>Order History (Uncleared)</h2>
                     <button class="btn btn-danger" onclick="app.views.history.clearHistory()">

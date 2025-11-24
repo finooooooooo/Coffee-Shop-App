@@ -1,7 +1,17 @@
 class ReportsView {
     async render(container) {
         const html = `
-            <div class="inventory-container">
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Admin Dashboard</h1>
+                    <span>Reports & Analytics</span>
+                </div>
+                <div style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
+                    <i class="fas fa-bars" style="font-size:1.5rem;"></i>
+                </div>
+            </header>
+
+            <div class="inventory-container" style="padding: 20px;">
                 <h2>Reports & Dashboard</h2>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:2rem;">
                     <div class="product-card" style="padding:1rem; text-align:center;">

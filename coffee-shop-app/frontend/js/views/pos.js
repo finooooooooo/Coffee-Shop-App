@@ -39,7 +39,7 @@ class POSView {
                     <h1>Coffee Shop</h1>
                     <span>Cafe and Restaurant</span>
                 </div>
-                <div style="position:absolute; right:20px;">
+                <div style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
                     <i class="fas fa-bars" style="font-size:1.5rem;"></i>
                 </div>
             </header>
