@@ -25,6 +25,8 @@ class LoginView {
                     </form>
                     <div class="login-help">
                         <small>Default: Admin/admin or Kasir/kasir</small>
+                        <br>
+                        <small>Enter credentials to access Admin or POS/Cashier modes.</small>
                     </div>
                 </div>
             </div>

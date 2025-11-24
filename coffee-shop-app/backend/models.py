@@ -79,6 +79,9 @@ class Order(db.Model):
     # Daily order sequence (P001, etc.)
     daily_order_number = db.Column(db.Integer, default=0)
 
+    # Workflow status
+    is_cleared = db.Column(db.Boolean, default=False) # If True, moves from History to Reports
+
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
     def to_dict(self):

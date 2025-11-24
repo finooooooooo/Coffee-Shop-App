@@ -1,80 +1,99 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 import time
 
-def run():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(viewport={'width': 1280, 'height': 720})
-        page = context.new_page()
+def verify_flow(page):
+    # Mock window.api
+    page.add_init_script("""
+        window.api = {
+            get: async (url) => {
+                const res = await fetch('http://localhost:5000/api' + url);
+                return res.json();
+            },
+            post: async (url, data) => {
+                const res = await fetch('http://localhost:5000/api' + url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                return res.json();
+            }
+        };
+    """)
 
-        try:
-            # 1. Go to App
-            page.goto("http://localhost:8000/coffee-shop-app/frontend/index.html")
+    # Handle dialogs (alerts)
+    page.on("dialog", lambda d: (print(f"Dialog: {d.message}"), d.accept()))
 
-            # 2. Login as Kasir
-            page.fill('#username', 'Kasir')
-            page.fill('#password', 'kasir')
-            page.click('button[type="submit"]')
+    # 1. Login
+    print("Navigating to login...")
+    page.goto("http://localhost:8081/index.html")
+    page.wait_for_selector(".login-container")
 
-            # Wait for Lobby
-            print("Waiting for Lobby...")
-            page.wait_for_selector('button:has-text("New Order")')
-            page.screenshot(path="verification/0_lobby.png")
+    # Login as Cashier
+    page.fill("#username", "Kasir")
+    page.fill("#password", "kasir")
+    page.click("button[type=submit]")
 
-            # Click New Order
-            page.click('button:has-text("New Order")')
+    # 2. Verify POS (No Splash)
+    print("Verifying POS...")
+    page.wait_for_selector(".menu-layout", timeout=5000)
 
-            # Wait for POS to load products
-            print("Waiting for Products...")
-            page.wait_for_selector('.pos-card', timeout=5000)
+    # 3. Add to Cart and Checkout
+    print("Adding to cart...")
+    page.locator(".product-card").first.click()
 
-            page.screenshot(path="verification/1_pos_view.png")
+    # Click Pay (Open Modal)
+    print("Clicking payment...")
+    page.click("#cart-totals + button")
 
-            # 3. Add items to cart (Mixed Food and Drink)
-            cards = page.locator('.pos-card')
-            cards.nth(0).click()
-            cards.nth(1).click()
+    # Verify Customer Name Input exists
+    page.wait_for_selector("#customer-name")
+    page.fill("#customer-name", "Test Customer")
 
-            page.wait_for_timeout(500)
-            page.screenshot(path="verification/2_cart_added.png")
+    # Process Payment
+    print("Processing payment...")
+    page.click("text=QRIS / Cash")
+    page.click("#modal-container button.btn-primary")
 
-            # 4. Checkout
-            page.click('button:has-text("Process Payment")')
-            page.wait_for_timeout(500)
+    # Verify Success Modal
+    print("Waiting for success message...")
+    try:
+        page.wait_for_selector("text=Pembayaran Berhasil", timeout=5000)
+        print("Success message found!")
+        page.screenshot(path="/home/jules/verification/4_success.png")
+    except Exception as e:
+        print("Success message NOT found. Taking screenshot.")
+        page.screenshot(path="/home/jules/verification/debug_payment_fail.png")
+        raise e
 
-            # Select Cash
-            page.click('.payment-method-card:has-text("Cash")')
+    # Reload to clear (click Done)
+    page.click("button:has-text('Selesai')")
 
-            # Enter amount
-            page.fill('#cash-input', '200000')
-            page.click('button:has-text("Complete Order")')
+    # 4. History Flow
+    print("Checking History...")
+    page.click("text=History")
+    page.wait_for_selector("table")
 
-            page.wait_for_timeout(1000)
-            page.screenshot(path="verification/3_success.png")
+    # Verify order is there
+    expect(page.locator("table")).to_contain_text("Test Customer")
+    page.screenshot(path="/home/jules/verification/5_history_before.png")
 
-            # 5. Check History/Kitchen
-            print("Navigating to Kitchen...")
-            page.evaluate("app.navigate('kitchen')")
-            page.wait_for_timeout(2000)
-            page.screenshot(path="verification/4_kitchen_view.png")
+    # Clear History
+    print("Clearing History...")
+    page.click("button:has-text('Clear History & Send to Reports')")
 
-            print("Navigating to Bar...")
-            page.evaluate("app.navigate('bar')")
-            page.wait_for_timeout(2000)
-            page.screenshot(path="verification/5_bar_view.png")
+    # Wait for reload
+    time.sleep(2)
+    page.screenshot(path="/home/jules/verification/6_history_after.png")
 
-            # 6. Check History
-            print("Navigating to History...")
-            page.evaluate("app.navigate('history')")
-            page.wait_for_timeout(2000)
-            page.screenshot(path="verification/6_history_view.png")
-
-        except Exception as e:
-            print(f"Error: {e}")
-            page.screenshot(path="verification/debug_error.png")
-
-        finally:
-            browser.close()
+    print("Verification Complete!")
 
 if __name__ == "__main__":
-    run()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            verify_flow(page)
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            browser.close()
