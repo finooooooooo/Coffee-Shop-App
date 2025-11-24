@@ -6,7 +6,7 @@ class HistoryView {
                     <h1>Admin Dashboard</h1>
                     <span>Order History</span>
                 </div>
-                <div style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
+                <div id="menu-trigger-btn" style="position:absolute; right:20px; cursor: pointer;" onclick="app.toggleQuickActions()">
                     <i class="fas fa-bars" style="font-size:1.5rem;"></i>
                 </div>
             </header>
