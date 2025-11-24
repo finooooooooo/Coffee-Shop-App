@@ -4,6 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coffee Shop POS</title>
+    <!-- Global Error Handler -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorContainer = document.createElement('div');
+            errorContainer.style.position = 'fixed';
+            errorContainer.style.top = '0';
+            errorContainer.style.left = '0';
+            errorContainer.style.width = '100%';
+            errorContainer.style.backgroundColor = '#ff4444';
+            errorContainer.style.color = 'white';
+            errorContainer.style.padding = '10px';
+            errorContainer.style.zIndex = '9999';
+            errorContainer.style.fontFamily = 'monospace';
+            errorContainer.innerText = `Error: ${message}\nSource: ${source}:${lineno}:${colno}`;
+            document.body.appendChild(errorContainer);
+            console.error('Global Error:', error);
+        };
+    </script>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
