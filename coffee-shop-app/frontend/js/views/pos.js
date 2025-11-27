@@ -69,7 +69,7 @@ class POSView {
                         <!-- Injected -->
                     </div>
 
-                    <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="pos.openCartMobile()">
+                    <button class="btn btn-primary" style="margin-top:10px; width:100%; display:none;" onclick="pos.openCartMobile()">
                         Pesan Sekarang (View Cart)
                     </button>
                 </div>
@@ -83,7 +83,7 @@ class POSView {
                     <div style="padding:10px; display:grid; grid-template-columns: 2fr 1fr 1fr; font-weight:bold; font-size:0.9rem;">
                         <span>Pesanan</span>
                         <span>Harga</span>
-                        <span>Jumlah</span>
+                        <span style="text-align:center;">Jumlah</span>
                     </div>
 
                     <div class="cart-items" id="cart-items">
@@ -92,7 +92,7 @@ class POSView {
 
                     <div class="cart-footer">
                          <div id="cart-totals"></div>
-                         <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="pos.showPayment()">Bayar Sekarang</button>
+                         <button class="btn btn-primary" id="btn-pay-main" style="width:100%; margin-top:15px;" onclick="pos.showPayment()">Bayar Sekarang</button>
                     </div>
                 </div>
             </div>
@@ -144,6 +144,12 @@ class POSView {
         const inCart = this.cart.find(i => i.id === p.id);
         const qtyDisplay = inCart ? `<div style="position:absolute; top:5px; right:5px; background:var(--primary-blue); color:white; border-radius:50%; width:25px; height:25px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${inCart.quantity}</div>` : '';
 
+        // Stock Display Logic
+        let stockDisplay = '';
+        if (p.is_inventory_managed) {
+            stockDisplay = `<div style="font-size:0.8rem; color:${p.stock_quantity > 0 ? 'green' : 'red'};">Stock: ${p.stock_quantity}</div>`;
+        }
+
         return `
             <div class="product-card" onclick="pos.addToCart(${p.id})">
                 <div class="product-img" style="background-image: url('${imgUrl}')"></div>
@@ -151,6 +157,7 @@ class POSView {
                 <div class="product-info">
                     <div style="font-weight:bold; font-size:0.9rem; margin-bottom:5px;">${p.name}</div>
                     <div style="font-weight:bold;">Rp ${p.price.toLocaleString()}</div>
+                    ${stockDisplay}
                 </div>
                 <button class="add-btn">+</button>
             </div>
@@ -171,6 +178,16 @@ class POSView {
     // --- CART ---
     addToCart(id) {
         const p = this.products.find(x => x.id === id);
+
+        // Stock Check (Frontend Side)
+        if (p.is_inventory_managed) {
+            const currentQty = this.cart.find(x => x.id === id)?.quantity || 0;
+            if (currentQty + 1 > p.stock_quantity) {
+                 // Optional: Show subtle toast, but for now just don't add
+                 return;
+            }
+        }
+
         const exist = this.cart.find(x => x.id === id);
         if(exist) exist.quantity++;
         else this.cart.push({...p, quantity: 1});
@@ -178,19 +195,59 @@ class POSView {
         this.updateMenuState(); // Update badges
     }
 
+    removeFromCart(id) {
+        const exist = this.cart.find(x => x.id === id);
+        if(!exist) return;
+
+        if (exist.quantity > 1) {
+            exist.quantity--;
+        } else {
+            // Confirm delete? For speed, maybe just delete or require small confirm.
+            // User requirement: "If Qty == 1: Change icon to Trash. Clicking removes item."
+            // Handled in UI rendering, here we just remove.
+            this.cart = this.cart.filter(x => x.id !== id);
+        }
+        this.updateCartUI();
+        this.updateMenuState();
+    }
+
+    deleteFromCart(id) {
+        this.cart = this.cart.filter(x => x.id !== id);
+        this.updateCartUI();
+        this.updateMenuState();
+    }
+
     updateCartUI() {
         const list = document.getElementById('cart-items');
         const totals = document.getElementById('cart-totals');
+        const btnPay = document.getElementById('btn-pay-main');
 
         if(!list) return;
 
-        list.innerHTML = this.cart.map(i => `
+        if (this.cart.length === 0) {
+             list.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">Cart Empty</div>`;
+             if(btnPay) btnPay.disabled = true;
+        } else {
+             if(btnPay) btnPay.disabled = false;
+        }
+
+        list.innerHTML = this.cart.map(i => {
+            const isSingle = i.quantity === 1;
+            const minusBtn = isSingle
+                ? `<button onclick="pos.deleteFromCart(${i.id})" style="background:none; border:none; color:red; cursor:pointer;"><i class="fas fa-trash"></i></button>`
+                : `<button onclick="pos.removeFromCart(${i.id})" style="background:#eee; border:none; width:20px; border-radius:3px; cursor:pointer;">-</button>`;
+
+            return `
             <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:5px; margin-bottom:5px; font-size:0.9rem; align-items:center;">
                 <div>${i.name}</div>
                 <div style="background:#dbeeff; padding:2px 5px; border-radius:5px;">Rp ${i.price.toLocaleString()}</div>
-                <div style="text-align:center; background:#dbeeff; padding:2px 5px; border-radius:5px;">${i.quantity}</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                    ${minusBtn}
+                    <span>${i.quantity}</span>
+                    <button onclick="pos.addToCart(${i.id})" style="background:#eee; border:none; width:20px; border-radius:3px; cursor:pointer;">+</button>
+                </div>
             </div>
-        `).join('');
+        `}).join('');
 
         const sub = this.cart.reduce((a, b) => a + (b.price * b.quantity), 0);
         const tax = sub * 0.1;
@@ -211,7 +268,6 @@ class POSView {
     }
 
     openCartMobile() {
-        // Just scroll to cart or show modal if mobile (omitted for simplicity, assuming desktop layout mainly)
         document.getElementById('desktop-cart').scrollIntoView({behavior: 'smooth'});
     }
 
@@ -226,7 +282,10 @@ class POSView {
         this.selectedPaymentMethod = 'Cash';
 
         container.innerHTML = `
-            <h2>Metode Pembayaran</h2>
+            <div style="position:relative;">
+                <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" style="position:absolute; right:0; top:-10px; border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                <h2>Metode Pembayaran</h2>
+            </div>
 
             <div style="margin: 20px 0; text-align: center;">
                  <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
@@ -239,7 +298,10 @@ class POSView {
                  </div>
             </div>
 
-            <button class="btn btn-primary" style="width:100%;" onclick="pos.processPayment()">Bayar Sekarang</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" style="flex:1; background:#ccc;" onclick="document.getElementById('modal-overlay').classList.add('hidden')">Cancel</button>
+                <button class="btn btn-primary" id="btn-process-pay" style="flex:2;" onclick="pos.processPayment()">Bayar Sekarang</button>
+            </div>
         `;
 
         // Initialize
@@ -249,9 +311,9 @@ class POSView {
     setPaymentMethod(method) {
         this.selectedPaymentMethod = method;
 
-        // Toggle active button styles
         const btnCash = document.getElementById('btn-cash');
         const btnQris = document.getElementById('btn-qris');
+        const btnProcess = document.getElementById('btn-process-pay');
 
         if(method === 'Cash') {
             btnCash.style.background = 'var(--primary-blue)';
@@ -259,20 +321,62 @@ class POSView {
             btnQris.style.background = '#eee';
             btnQris.style.color = '#333';
 
+            // Real-time calculation logic
             document.getElementById('payment-content').innerHTML = `
-                <label style="display:block; margin-bottom:5px; font-weight:bold;">Jumlah Pembayaran (Rp)</label>
-                <input type="number" id="payment-amount" value="${this.currentTotal}" style="width:200px; padding:10px; font-size:1.2rem; text-align:center; border:1px solid #ddd; border-radius:5px;">
+                <div style="width:100%;">
+                    <label style="display:block; margin-bottom:5px; font-weight:bold;">Jumlah Pembayaran (Rp)</label>
+                    <input type="number" id="payment-amount" placeholder="0" style="width:100%; padding:15px; font-size:1.5rem; text-align:center; border:1px solid #ddd; border-radius:5px; margin-bottom:10px;">
+                    <div id="change-display" style="font-size:1.2rem; font-weight:bold; color:#666; min-height:1.5rem;"></div>
+                    <div id="error-display" style="color:red; font-weight:bold; min-height:1.5rem;"></div>
+                </div>
             `;
+
+            const input = document.getElementById('payment-amount');
+            input.focus();
+            input.addEventListener('keyup', (e) => this.calculateChange(e.target.value));
+            input.addEventListener('change', (e) => this.calculateChange(e.target.value));
+
+            // Initial check (disable button until amount entered)
+            btnProcess.disabled = true;
+
         } else {
             btnQris.style.background = 'var(--primary-blue)';
             btnQris.style.color = 'white';
             btnCash.style.background = '#eee';
             btnCash.style.color = '#333';
+            btnProcess.disabled = false;
 
             document.getElementById('payment-content').innerHTML = `
                 <img src="img/qris.png" alt="QRIS Code" style="max-width:200px; border-radius:10px;">
                 <p style="margin-top:10px; font-weight:bold;">Scan to Pay</p>
+                <p>Total: Rp ${this.currentTotal.toLocaleString()}</p>
             `;
+        }
+    }
+
+    calculateChange(val) {
+        const amount = parseFloat(val);
+        const changeDisplay = document.getElementById('change-display');
+        const errorDisplay = document.getElementById('error-display');
+        const btnProcess = document.getElementById('btn-process-pay');
+
+        if (isNaN(amount)) {
+            changeDisplay.textContent = '';
+            errorDisplay.textContent = '';
+            btnProcess.disabled = true;
+            return;
+        }
+
+        if (amount < this.currentTotal) {
+            const diff = this.currentTotal - amount;
+            errorDisplay.textContent = `Kurang Rp ${diff.toLocaleString()}`;
+            changeDisplay.textContent = '';
+            btnProcess.disabled = true;
+        } else {
+            const change = amount - this.currentTotal;
+            errorDisplay.textContent = '';
+            changeDisplay.textContent = `Kembalian: Rp ${change.toLocaleString()}`;
+            btnProcess.disabled = false;
         }
     }
 
@@ -284,25 +388,30 @@ class POSView {
             if(input) paymentReceived = parseFloat(input.value);
 
             if (isNaN(paymentReceived) || paymentReceived < this.currentTotal) {
-                return alert(`Pembayaran kurang! Total: ${this.currentTotal.toLocaleString()}`);
+                // Should be handled by UI validation, but double check
+                return;
             }
         } else {
-            // QRIS assumed exact payment
             paymentReceived = this.currentTotal;
         }
 
+        // Retrieve User ID from Auth Store
+        // Assuming app.currentUser contains the logged in user info
+        const userId = window.app && window.app.currentUser ? window.app.currentUser.id : null;
+
         const orderData = {
+            user_id: userId,
             total_amount: this.currentTotal,
             payment_method: this.selectedPaymentMethod,
             payment_received: paymentReceived,
-            customer_name: null, // Removed as per requirement
+            customer_name: null,
             items: this.cart.map(i => ({ id: i.id, quantity: i.quantity }))
         };
 
         try {
             const res = await api.post('/pos/orders', orderData);
             if(res.error) throw new Error(res.error);
-            this.renderSuccess(res.order_id);
+            this.renderSuccess(res.transaction_code || res.id);
         } catch(e) {
             alert("Error: " + e.message);
         }

@@ -1,6 +1,7 @@
 class InventoryView {
     constructor() {
         this.currentId = null;
+        this.categories = [];
     }
 
     async render(container) {
@@ -33,7 +34,7 @@ class InventoryView {
                                 <th>Name</th>
                                 <th>Category</th>
                                 <th>Price</th>
-                                <th>Stock</th>
+                                <th>Status / Stock</th>
                                 <th class="text-right">Actions</th>
                             </tr>
                         </thead>
@@ -46,7 +47,16 @@ class InventoryView {
         `;
         container.innerHTML = html;
         window.inventory = this;
+        await this.loadCategories(); // Fetch categories once
         await this.loadInventory();
+    }
+
+    async loadCategories() {
+        try {
+            this.categories = await api.get('/inventory/categories');
+        } catch (e) {
+            console.error("Failed to load categories", e);
+        }
     }
 
     async loadInventory() {
@@ -59,7 +69,17 @@ class InventoryView {
                 return;
             }
 
-            tbody.innerHTML = products.map(p => `
+            tbody.innerHTML = products.map(p => {
+                let stockDisplay = '';
+                if (p.is_inventory_managed) {
+                    const color = p.stock_quantity < 10 ? 'var(--danger-color)' : 'var(--success-color)';
+                    stockDisplay = `<span style="color: ${color}; font-weight: 600;">${p.stock_quantity} units</span>`;
+                } else {
+                     const statusColor = p.is_active ? 'green' : 'gray';
+                     stockDisplay = `<span style="color: ${statusColor}; font-weight: 600;">${p.is_active ? 'Available' : 'Unavailable'}</span>`;
+                }
+
+                return `
                 <tr>
                     <td>
                         <div style="font-weight: 600;">${p.name}</div>
@@ -70,21 +90,17 @@ class InventoryView {
                         </span>
                     </td>
                     <td>Rp ${p.price.toLocaleString()}</td>
-                    <td>
-                        <span style="color: ${p.stock < 10 ? 'var(--danger-color)' : 'var(--success-color)'}; font-weight: 600;">
-                            ${p.stock} units
-                        </span>
-                    </td>
+                    <td>${stockDisplay}</td>
                     <td class="text-right">
                         <button class="btn btn-ghost" onclick="inventory.openEditModal(${p.id})" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-ghost" style="color: var(--danger-color);" onclick="inventory.delete(${p.id})" title="Delete">
+                        <button class="btn btn-ghost" style="color: var(--danger-color);" onclick="inventory.delete(${p.id})" title="Deactivate">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         } catch (err) {
             console.error(err);
             document.getElementById('inv-table-body').innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error loading inventory</td></tr>`;
@@ -95,6 +111,14 @@ class InventoryView {
         const modalContainer = document.getElementById('modal-container');
         const overlay = document.getElementById('modal-overlay');
         
+        // Defaults
+        const isManaged = data.is_inventory_managed !== undefined ? data.is_inventory_managed : true;
+        const isActive = data.is_active !== undefined ? data.is_active : true;
+
+        const catOptions = this.categories.map(c =>
+            `<option value="${c.id}" ${data.category_id === c.id ? 'selected' : ''}>${c.name}</option>`
+        ).join('');
+
         modalContainer.innerHTML = `
             <div class="modal-header">
                 <h2>${title}</h2>
@@ -106,27 +130,46 @@ class InventoryView {
                     <input type="text" id="prod-name" placeholder="e.g. Caramel Macchiato" value="${data.name || ''}" required>
                 </div>
 
+                <div class="mb-1">
+                    <label style="display:block; margin-bottom:8px; font-weight:500;">Category</label>
+                    <select id="prod-category-id" required>
+                         <option value="">Select Category...</option>
+                         ${catOptions}
+                    </select>
+                </div>
+
+                <div class="mb-1" style="background:#f9f9f9; padding:10px; border-radius:5px;">
+                     <label style="display:block; margin-bottom:8px; font-weight:bold;">Inventory Type</label>
+                     <div style="display:flex; gap:20px;">
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="inv_type" value="retail" ${isManaged ? 'checked' : ''} onchange="inventory.toggleStockInput(true)">
+                            Retail (Stock Count)
+                        </label>
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="inv_type" value="kitchen" ${!isManaged ? 'checked' : ''} onchange="inventory.toggleStockInput(false)">
+                            Kitchen (Manual Avail.)
+                        </label>
+                     </div>
+                </div>
+
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display:block; margin-bottom:8px; font-weight:500;">Price (Rp)</label>
                         <input type="number" id="prod-price" placeholder="0" value="${data.price || ''}" required>
                     </div>
-                    <div>
-                        <label style="display:block; margin-bottom:8px; font-weight:500;">Stock</label>
-                        <input type="number" id="prod-stock" placeholder="0" value="${data.stock || ''}" required>
-                    </div>
-                </div>
 
-                <div class="mb-1">
-                    <label style="display:block; margin-bottom:8px; font-weight:500;">Category</label>
-                    <select id="prod-category">
-                         <option value="Signature Coffee" ${data.category === 'Signature Coffee' ? 'selected' : ''}>Signature Coffee</option>
-                         <option value="Classic Coffee" ${data.category === 'Classic Coffee' ? 'selected' : ''}>Classic Coffee</option>
-                         <option value="Non-Coffee" ${data.category === 'Non-Coffee' ? 'selected' : ''}>Non-Coffee</option>
-                         <option value="Main Course" ${data.category === 'Main Course' ? 'selected' : ''}>Main Course</option>
-                         <option value="Snacks" ${data.category === 'Snacks' ? 'selected' : ''}>Snacks</option>
-                         <option value="Dessert" ${data.category === 'Dessert' ? 'selected' : ''}>Dessert</option>
-                    </select>
+                    <div id="stock-input-container" style="${isManaged ? '' : 'display:none;'}">
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Stock Quantity</label>
+                        <input type="number" id="prod-stock" placeholder="0" value="${data.stock_quantity || 0}">
+                    </div>
+
+                    <div id="active-toggle-container" style="${!isManaged ? '' : 'display:none;'}">
+                         <label style="display:block; margin-bottom:8px; font-weight:500;">Availability</label>
+                         <select id="prod-active">
+                            <option value="true" ${isActive ? 'selected' : ''}>Available</option>
+                            <option value="false" ${!isActive ? 'selected' : ''}>Unavailable</option>
+                         </select>
+                    </div>
                 </div>
 
                 <div class="mb-1">
@@ -141,6 +184,11 @@ class InventoryView {
             </form>
         `;
         overlay.classList.remove('hidden');
+    }
+
+    toggleStockInput(isRetail) {
+        document.getElementById('stock-input-container').style.display = isRetail ? 'block' : 'none';
+        document.getElementById('active-toggle-container').style.display = isRetail ? 'none' : 'block';
     }
 
     closeModal() {
@@ -168,12 +216,19 @@ class InventoryView {
 
     async submitForm(e) {
         e.preventDefault();
+
+        const isManaged = document.querySelector('input[name="inv_type"]:checked').value === 'retail';
+        const stockVal = document.getElementById('prod-stock').value;
+        const activeVal = document.getElementById('prod-active').value === 'true';
+
         const data = {
             name: document.getElementById('prod-name').value,
-            category: document.getElementById('prod-category').value,
+            category_id: parseInt(document.getElementById('prod-category-id').value),
             price: parseFloat(document.getElementById('prod-price').value),
-            stock: parseInt(document.getElementById('prod-stock').value),
-            image_url: document.getElementById('prod-img').value
+            image_url: document.getElementById('prod-img').value,
+            is_inventory_managed: isManaged,
+            stock_quantity: isManaged ? parseInt(stockVal) : 0,
+            is_active: isManaged ? true : activeVal // If retail, active is derived from stock logic backend (initially true)
         };
 
         try {
@@ -185,13 +240,13 @@ class InventoryView {
             this.closeModal();
             this.loadInventory();
         } catch (err) {
-            alert("Error saving product");
+            alert("Error saving product: " + (err.message || "Unknown error"));
             console.error(err);
         }
     }
 
     delete(id) {
-        if(confirm("Delete this product?")) {
+        if(confirm("Deactivate this product?")) {
             api.delete(`/inventory/products/${id}`).then(() => this.loadInventory());
         }
     }
