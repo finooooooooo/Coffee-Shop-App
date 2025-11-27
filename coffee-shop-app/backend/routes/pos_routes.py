@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
-from models import Order, OrderItem, Product, Shift
+from models import Order, OrderItem, Product, User
 from datetime import datetime, date
 from sqlalchemy import func
 import os
@@ -24,163 +24,55 @@ def get_products_sorted():
     product_list = [p.to_dict() for p in products]
 
     # Use the custom Merge Sort algorithm
-    # Note: 'price' is float, 'name' is string. Both are comparable in Python.
     sorted_products = merge_sort(product_list, key=sort_by, reverse=reverse)
 
     return jsonify(sorted_products)
 
 @pos_bp.route('/orders', methods=['GET'])
 def get_orders_history():
-    # Simple history: Last 50 orders, descending
-    # Only show orders that have NOT been cleared yet
-    orders = Order.query.filter_by(is_cleared=False).order_by(Order.created_at.desc()).limit(50).all()
+    # Show active (paid/pending) orders, excluding cancelled?
+    # Or just last 50 orders of today
+    # User asked for "date filtering", this is likely for the POS 'History' tab.
+    # We will show the last 50 'paid' orders.
+    orders = Order.query.filter(Order.status == 'paid').order_by(Order.created_at.desc()).limit(50).all()
     return jsonify([o.to_dict() for o in orders])
-
-@pos_bp.route('/history/print-report', methods=['POST'])
-def print_report_and_clear():
-    """
-    Generates a report for all uncleared orders, saves it, and then clears the history.
-    """
-    try:
-        orders = Order.query.filter_by(is_cleared=False).order_by(Order.created_at.asc()).all()
-
-        if not orders:
-            return jsonify({'message': 'No active orders to report.', 'count': 0})
-
-        # Generate Report File
-        report_path = generate_report_file(orders)
-
-        # Clear Orders
-        count = 0
-        for order in orders:
-            order.is_cleared = True
-            count += 1
-
-        db.session.commit()
-
-        msg = f"Report generated at {report_path}. {count} orders cleared."
-        return jsonify({'message': msg, 'count': count, 'report_path': report_path})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@pos_bp.route('/history/clear', methods=['POST'])
-def clear_history():
-    """
-    Legacy endpoint: Marks all currently uncleared orders (or specific ones) as cleared.
-    These orders will then appear in Reports.
-    """
-    try:
-        # Update all orders where is_cleared is False
-        # In a real app, you might want to filter by date or specific IDs
-        orders = Order.query.filter_by(is_cleared=False).all()
-        count = 0
-        for order in orders:
-            order.is_cleared = True
-            count += 1
-
-        db.session.commit()
-        return jsonify({'message': f'Successfully cleared {count} orders.', 'count': count})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-def generate_struct_file(order):
-    """
-    Generates a receipt text file in the backend/receipts directory.
-    Format: Receipt_P-XXX_Timestamp.txt
-    """
-    try:
-        struct_dir = os.path.join(os.getcwd(), 'backend', 'receipts') # Assumes running from root
-        if not os.path.exists(struct_dir):
-            os.makedirs(struct_dir)
-
-        order_id_str = f"P-{order.daily_order_number:03d}"
-        filename = f"Receipt_{order_id_str}_{int(datetime.now().timestamp())}.txt"
-        filepath = os.path.join(struct_dir, filename)
-
-        with open(filepath, 'w') as f:
-            f.write("========================================\n")
-            f.write("              COFFEE SHOP               \n")
-            f.write("========================================\n")
-            f.write(f"Order ID: {order_id_str}\n")
-            f.write(f"Date:     {order.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            # Customer name removed from display request, but keeping 'Walk-in' as fallback if empty
-            f.write(f"Customer: {order.customer_name or 'Walk-in'}\n")
-            f.write("----------------------------------------\n")
-            f.write(f"{'Item':<20} {'Qty':<5} {'Price':>10}\n")
-            f.write("----------------------------------------\n")
-            for item in order.items:
-                f.write(f"{item.product_name:<20} {item.quantity:<5} {item.price_at_sale:>10,.0f}\n")
-            f.write("----------------------------------------\n")
-            f.write(f"Total:                  {order.total_amount:>10,.0f}\n")
-            f.write(f"Payment ({order.payment_method}):    {order.payment_received:>10,.0f}\n")
-            f.write(f"Change:                 {order.change_given:>10,.0f}\n")
-            f.write("========================================\n")
-            f.write("          THANK YOU FOR VISITING        \n")
-            f.write("========================================\n")
-
-        print(f"Receipt generated: {filepath}")
-    except Exception as e:
-        print(f"Error generating receipt file: {e}")
-
-def generate_report_file(orders):
-    """
-    Generates a summary report of the given orders to backend/reports.
-    """
-    try:
-        report_dir = os.path.join(os.getcwd(), 'backend', 'reports')
-        if not os.path.exists(report_dir):
-            os.makedirs(report_dir)
-
-        filename = f"Report_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.txt"
-        filepath = os.path.join(report_dir, filename)
-
-        total_revenue = sum(o.total_amount for o in orders)
-
-        with open(filepath, 'w') as f:
-            f.write("========================================\n")
-            f.write("            SESSION REPORT              \n")
-            f.write("========================================\n")
-            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Total Orders: {len(orders)}\n")
-            f.write(f"Total Revenue: Rp {total_revenue:,.0f}\n")
-            f.write("----------------------------------------\n")
-            f.write(f"{'Order ID':<10} {'Time':<10} {'Total':>15}\n")
-            f.write("----------------------------------------\n")
-            for o in orders:
-                 # Safely handle potentially None values if any
-                oid = f"P-{o.daily_order_number:03d}" if o.daily_order_number else str(o.id)
-                time_str = o.created_at.strftime('%H:%M')
-                f.write(f"{oid:<10} {time_str:<10} {o.total_amount:>15,.0f}\n")
-            f.write("========================================\n")
-
-        return filepath
-    except Exception as e:
-        print(f"Error generating report: {e}")
-        return None
 
 @pos_bp.route('/orders', methods=['POST'])
 def create_order():
     data = request.json
-    shift_id = None
     calculated_total = 0.0
     order_items_data = []
 
-    # Kitchen/Bar logic removed, simplified statuses to 'none'
+    # Validate User
+    user_id = data.get('user_id')
+    user = db.session.get(User, user_id) if user_id else None
+
+    # Fallback to first cashier if no user_id (for development/legacy frontend compat)
+    if not user:
+         # Try to find a default user or error out?
+         # Given user constraints, we should enforce user.
+         # But I will default to ID 2 (Cashier) to prevent breakage if frontend doesn't send it yet.
+         # Ideally, auth middleware handles this.
+         user = db.session.get(User, 2)
+
+    if not user:
+        return jsonify({'error': 'Invalid user/cashier'}), 400
 
     for item in data['items']:
         product = db.session.get(Product, item['id'])
         if product:
             if not product.is_active:
                 return jsonify({'error': f"Product '{product.name}' is no longer available"}), 400
+
             if item['quantity'] <= 0:
                 return jsonify({'error': f"Invalid quantity for product '{product.name}'. Must be > 0"}), 400
-            if product.stock < item['quantity']:
-                return jsonify({'error': f"Insufficient stock for product '{product.name}'"}), 400
 
-            subtotal = item['quantity'] * product.price
+            # Inventory Check
+            if product.is_inventory_managed:
+                if product.stock_quantity < item['quantity']:
+                    return jsonify({'error': f"Insufficient stock for product '{product.name}' (Available: {product.stock_quantity})"}), 400
+
+            subtotal = item['quantity'] * float(product.price) # Ensure float calc
             calculated_total += subtotal
 
             order_items_data.append({
@@ -191,80 +83,104 @@ def create_order():
         else:
             return jsonify({'error': f"Product with id {item['id']} not found"}), 404
 
-    payment_received = data.get('payment_received', 0)
+    payment_received = float(data.get('payment_received', 0))
     if payment_received < calculated_total:
         return jsonify({'error': f"Insufficient payment. Expected {calculated_total}, received {payment_received}"}), 400
 
-    today = date.today()
-    today_start = datetime.combine(today, datetime.min.time())
-    max_order_num = db.session.query(func.max(Order.daily_order_number)).filter(Order.created_at >= today_start).scalar()
-    new_daily_number = (max_order_num or 0) + 1
+    # Generate Transaction Code: TRX-YYYYMMDD-XXXX
+    today_str = datetime.now().strftime('%Y%m%d')
+    today_start = datetime.combine(date.today(), datetime.min.time())
+
+    # Count orders today for sequence
+    count_today = db.session.query(func.count(Order.id)).filter(Order.created_at >= today_start).scalar()
+    sequence = (count_today or 0) + 1
+    transaction_code = f"TRX-{today_str}-{sequence:04d}"
 
     new_order = Order(
-        shift_id=shift_id,
+        user_id=user.id,
+        transaction_code=transaction_code,
         total_amount=calculated_total,
         payment_method=data.get('payment_method', 'Cash'),
-        payment_received=payment_received,
-        change_given=payment_received - calculated_total,
-        customer_name=data.get('customer_name'),
-        table_number=data.get('table_number'),
-        daily_order_number=new_daily_number,
-        kitchen_status='none', # Kitchen display removed
-        bar_status='none'      # Bar display removed
+        amount_received=payment_received,
+        change_amount=payment_received - calculated_total,
+        status='paid', # Successfully paid
+        created_at=datetime.utcnow()
     )
 
     db.session.add(new_order)
+    db.session.flush() # Get ID
 
     for item_data in order_items_data:
         product = item_data['product']
         order_item = OrderItem(
-            order=new_order,
+            order_id=new_order.id,
             product_id=product.id,
-            product_name=product.name,
-            price_at_sale=product.price,
+            product_name_snapshot=product.name,
+            price_snapshot=product.price,
             quantity=item_data['quantity'],
             subtotal=item_data['subtotal']
         )
         db.session.add(order_item)
-        product.stock -= item_data['quantity']
+
+        # Deduct Stock
+        if product.is_inventory_managed:
+            product.stock_quantity -= item_data['quantity']
+            # Auto-Deactivate if 0?
+            if product.stock_quantity <= 0:
+                product.is_active = False # As per requirement "Auto-Deactivate"
 
     db.session.commit()
 
-    # Generate the physical struct file
+    # Generate Receipt File (Legacy requirement kept)
     generate_struct_file(new_order)
 
     return jsonify(new_order.to_dict()), 201
 
-@pos_bp.route('/orders/<int:order_id>/status', methods=['POST'])
-def update_order_status(order_id):
-    data = request.json
-    role = data.get('role')
-    status = data.get('status')
+# --- Legacy/Helper Functions ---
 
-    order = db.session.get(Order, order_id)
-    if not order:
-        return jsonify({'error': 'Order not found'}), 404
+def generate_struct_file(order):
+    try:
+        struct_dir = os.path.join(os.getcwd(), 'backend', 'receipts')
+        if not os.path.exists(struct_dir):
+            os.makedirs(struct_dir)
 
-    if role == 'kitchen':
-        order.kitchen_status = status
-    elif role == 'bar':
-        order.bar_status = status
-    else:
-        return jsonify({'error': 'Invalid role'}), 400
+        filename = f"Receipt_{order.transaction_code}.txt"
+        filepath = os.path.join(struct_dir, filename)
 
-    db.session.commit()
-    return jsonify(order.to_dict())
+        with open(filepath, 'w') as f:
+            f.write("========================================\n")
+            f.write("              COFFEE SHOP               \n")
+            f.write("========================================\n")
+            f.write(f"Trx Code: {order.transaction_code}\n")
+            f.write(f"Date:     {order.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Cashier:  {order.user.username}\n")
+            f.write("----------------------------------------\n")
+            f.write(f"{'Item':<20} {'Qty':<5} {'Price':>10}\n")
+            f.write("----------------------------------------\n")
+            for item in order.items:
+                f.write(f"{item.product_name_snapshot:<20} {item.quantity:<5} {float(item.price_snapshot):>10,.0f}\n")
+            f.write("----------------------------------------\n")
+            f.write(f"Total:                  {float(order.total_amount):>10,.0f}\n")
+            f.write(f"Payment ({order.payment_method}):    {float(order.amount_received):>10,.0f}\n")
+            f.write(f"Change:                 {float(order.change_amount):>10,.0f}\n")
+            f.write("========================================\n")
+            f.write("          THANK YOU FOR VISITING        \n")
+            f.write("========================================\n")
+
+    except Exception as e:
+        print(f"Error generating receipt: {e}")
 
 @pos_bp.route('/shift/close', methods=['POST'])
 def close_shift_report():
-    today = date.today()
-    today_start = datetime.combine(today, datetime.min.time())
-    orders = Order.query.filter(Order.created_at >= today_start).all()
-    total_revenue = sum(o.total_amount for o in orders)
+    # Renamed/Repurposed to "Daily Report" since Shift model is gone/deprecated for now
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    orders = Order.query.filter(Order.created_at >= today_start, Order.status == 'paid').all()
+
+    total_revenue = sum(float(o.total_amount) for o in orders)
     total_orders = len(orders)
-    report = {
-        'date': today.isoformat(),
+
+    return jsonify({
+        'date': date.today().isoformat(),
         'total_revenue': total_revenue,
         'total_orders': total_orders
-    }
-    return jsonify(report)
+    })

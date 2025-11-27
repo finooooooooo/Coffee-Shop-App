@@ -16,13 +16,13 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     # Simple password check (in production use werkzeug.security.check_password_hash)
-    if user and user.password == password:
+    if user and user.password_hash == password:
         return jsonify({
             'success': True,
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'role': user.role
+                'role': user.role.name
             }
         })
 
